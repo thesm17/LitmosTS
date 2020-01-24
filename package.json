@@ -1,0 +1,25 @@
+{
+  "name": "tslitmos",
+  "version": "1.0.0",
+  "description": "Upgrading ShSp-Litmos connection to TypeScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thesm17/LitmosTS.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/thesm17/LitmosTS/issues"
+  },
+  "homepage": "https://github.com/thesm17/LitmosTS#readme",
+  "dependencies": {
+    "@types/google-apps-script": "^1.0.10",
+    "clasp": "^1.0.0",
+    "node-fetch": "^2.6.0",
+    "typescript": "^3.7.5"
+  }
+}
