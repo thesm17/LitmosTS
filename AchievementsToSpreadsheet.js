@@ -1,12 +1,34 @@
-var payload = {};
+// Compiled using ts2gas 3.4.4 (TypeScript 3.7.5)
+var exports = exports || {};
+var module = module || { exports: exports };
+"use strict";
+var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 /**
  * Catches webhooks posted by Litmos
  * @param {Object} e -    An individual achievement being sent from litmos
  * @return {TextOutput} A stringified version of the payload
  */
 function doPost(e) {
-    payload = e;
-    return HtmlService.createHtmlOutput(JSON.stringify(payload));
+    var payload = JSON.parse(e.postData.contents).data;
+    var keys = Object.keys(payload);
+    /** User for testing
+     *   var values = keys.map((key) => {return payload[key]});
+     *   var userID = payload.userId;
+     *   var paramsObject = getJsonFromParams(payload)
+     *
+     */
+    var results = "Incoming data: " + JSON.stringify(payload) + "\n";
+    results += runner(payload);
+    var webHookTesterurl = "https://webhook.site/3b1ba15c-54d2-4278-b254-95d28f8c1af1";
+    var options = {
+        'method': 'POST',
+        'contentType': 'application/json',
+        // Convert the JavaScript object to a JSON string.
+        //'payload' : `Keys: ${keys}\nValues: ${values}`
+        'payload': results
+    };
+    UrlFetchApp.fetch(webHookTesterurl, options);
+    return ContentService.createTextOutput(results);
 }
 function parseCompanyIdFromLitmosUsername(username) {
     return username.split("u")[0].substr(1);
@@ -17,7 +39,7 @@ function parseCompanyIdFromLitmosUsername(username) {
 * @return {Object} {companyID, courseID} from the achievement
 */
 function getCompanyIDAndCourseID(payload) {
-    var companyID = parseCompanyIdFromLitmosUsername(payload.userId);
+    var companyID = parseCompanyIdFromLitmosUsername(payload.userName);
     var data = {
         companyID: companyID,
         courseID: payload.courseId
@@ -25,43 +47,201 @@ function getCompanyIDAndCourseID(payload) {
     return data;
 }
 /**
- * Search spreadsheet rows for the matching companyID row. If one doesn't exist, create it at the bottom.
- * @param {String} companyID - SharpSpring company ID
- * @param {Sheet} sheet - A Google sheet (Spreadsheet.sheet)
- * @return {number} - Row where the company ID exists;
+ * Search active spreadsheet for the matching companyID row. If one doesn't exist, create it at the bottom. Return the cell where the company ID is located. If the sheet doesn't exist, return null
+ * @param {String} companyID SharpSpring company ID.
+ * @return {Object {number} } {row, column} where the company ID exists.
  */
-function getCompanySpreadSheetRow(companyID, sheet) {
-    //sheet.
+function getCompanyIDCellFromSS(companyID) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    //Look for the Company ID header from the first row and set it as the column we're looking for
+    var companyIDColumn = 1;
+    var lastRow = sheet.getLastRow();
+    //var companyIDColumn = sheet.getRange("1:1").createTextFinder("Company ID").findNext()?.getColumn() || 1;
+    Logger.log(columnToLetter(companyIDColumn) + "1:" + columnToLetter(companyIDColumn) + lastRow);
+    var r = sheet.getRange(columnToLetter(companyIDColumn) + "1:" + columnToLetter(companyIDColumn) + lastRow);
+    Logger.log("Lookup range for company IDs: " + r.getValues());
+    //search range r (which is just a single column) for the given company ID. If it doesn't exist, return the first empty row
+    var textFinder = r.createTextFinder(companyID);
+    var firstOccurance = textFinder.findNext();
+    var row;
+    //returns null if it isn't in the sheet
+    if (firstOccurance !== null) {
+        row = firstOccurance.getRow();
+    }
+    else
+        row = sheet.getLastRow() + 1;
+    Logger.log("Row: " + row);
+    //Set a blank cell to the company ID or re-write the company value over itself
+    var companyIDCell = sheet.getRange(row, companyIDColumn).setValue(companyID);
+    //Log result
+    Logger.log("Company ID " + companyID + " is located at " + companyIDCell.getRow() + ", " + companyIDCell.getColumn() + " (row, col)");
+    return { row: companyIDCell.getRow(), column: companyIDColumn };
 }
 /**
  * Find how many of this achievement a given company has
- * @param {string} courseID - Litmos course ID from achievement record
- * @param {row} row - spreadsheet row for the given company
- * @return {Object}
+ * @param {string} courseID Litmos course ID from achievement record
+ * @param {{row,column}} companyIDCell {row, column} of company ID
+ * @return  {{achievementCol: number, numAchievements: number}}
   * {
   *   column: column where the matching achievement exists (or first empty column),
   *   priorNumberOfAchievements:  corresponding # of completions
   * }
  */
 /**
+ *
+ * @param {number} row a given row
+ * @return {number} column is the last filled column in a given row
+ */
+function getLastColumnInRow(row) {
+    var col = 1;
+    while (sheet.getRange(row, col).isBlank() == false) {
+        col++;
+    }
+    return col - 1;
+}
+function getNumberOfAchievments(courseID, companyIDCell) {
+    //Search for column for this courseID
+    //count how many filled rows there are
+    var lastColumn = getLastColumnInRow(companyIDCell.row);
+    Logger.log("Last column: " + lastColumn);
+    //define the search range up to the last nonempty cell
+    var r = sheet.getRange(companyIDCell.row, 1, 1, lastColumn);
+    var textFinder = r.createTextFinder(courseID);
+    var firstOccurance = textFinder.findNext();
+    var col, numberOfPriorCompletions;
+    //returns null if it isn't in the sheet 
+    if (firstOccurance !== null) {
+        col = firstOccurance.getColumn();
+    }
+    else {
+        col = lastColumn + 1;
+    }
+    ;
+    sheet.getRange(companyIDCell.row, col + 1);
+    Logger.log("Prior completions would be located at " + companyIDCell.row + " ," + (col + 1));
+    if (sheet.getRange(companyIDCell.row, col + 1).isBlank()) {
+        numberOfPriorCompletions = 0;
+    }
+    else {
+        numberOfPriorCompletions = sheet.getRange(companyIDCell.row, col + 1).getValue();
+    }
+    Logger.log("Number of completions: " + numberOfPriorCompletions);
+    return {
+        achievementCol: col,
+        numberOfPriorCompletions: numberOfPriorCompletions
+    };
+}
+/**
  * Iterate achievements
  * @param {number} priorNumberOfAchievements
  * @param {number=} interator - number to increase by
  * @return {number} return sum of numberOfAchievements + interator
  */
+function iterateAchievements(priorNumberOfAchievements, iterator) {
+    return (priorNumberOfAchievements + iterator);
+}
 /**
  * Post new achievement number to spreadsheet
- * @param {number} row
- * @param {number} column
+ * @param {{number,number}} companyIDCell
+ * @param {number} achievementColumn
  * @param {string} courseID
  * @param {number} numberOfAchievements
- * @return {Range} getRange(row, column, 1,2).setValues([courseID, numberOfAchievements+1])
+ * @return {} getRange(row, column, 1,2).setValues([courseID, numberOfAchievements+1])
  */
+function updateCompanyAchievementCell(companyIDCell, achievementColumn, courseID, numberOfAchievements) {
+    var achData = [courseID, numberOfAchievements];
+    var r = sheet.getRange(companyIDCell.row, achievementColumn, 1, 2);
+    Logger.log(r);
+    Logger.log(r.getValues());
+    Logger.log("Made it to the troublesome bit...");
+    var results = r.setValues([achData]);
+    Logger.log("Updated values: " + results.getValues);
+}
+/**
+ *
+ * @param {number} payload comes from webhook
+ * @return {void}
+ *
+ */
+function runner(payload) {
+    var prepResults = "";
+    prepResults += "\npayload gotten!";
+    //Parse companyID and courseID from webhook
+    var _a = getCompanyIDAndCourseID(payload), companyID = _a.companyID, courseID = _a.courseID;
+    Logger.log(companyID + "\n" + courseID);
+    //Get the cell in the spreadsheet where the companyID is located. If it hasn't existed before, add it to the companyID column at the bottom-most row.
+    var companyIDCell = getCompanyIDCellFromSS(companyID);
+    //Grab that company's achievement record for the given courseId. If There aren't any, return zero
+    var achievementData = getNumberOfAchievments(courseID, companyIDCell);
+    prepResults += "\nAchievement Data: \n" + achievementData.achievementCol + " is the column number for the course of choice\n" + achievementData.numberOfPriorCompletions + " is the number of prior completions";
+    //Add 1 to it
+    var newNumCompletions = iterateAchievements(achievementData.numberOfPriorCompletions, 1);
+    prepResults += "\nNew completions: " + newNumCompletions;
+    //Post the new results to the proper row in the spreadsheet
+    var results = updateCompanyAchievementCell(companyIDCell, achievementData.achievementCol, courseID, newNumCompletions);
+    prepResults += "\n" + JSON.stringify(results) + "Sheet updated with webhook data. Script finished.";
+    return prepResults;
+}
 var testCourseInfo = {
-    userId: "100",
-    courseId: "123",
+    userId: "c100u234987e",
+    courseId: "63754",
     otherstuff: "nooo",
     yep: 17,
-    "true": true
+    woo: 8
 };
-console.log(getCompanyIDAndCourseID(testCourseInfo));
+function claspTest() {
+    Logger.log("Test started");
+    runner(litmosTestCode);
+}
+function columnToLetter(column) {
+    var temp, letter = '';
+    while (column > 0) {
+        temp = (column - 1) % 26;
+        letter = String.fromCharCode(temp + 65) + letter;
+        column = (column - temp - 1) / 26;
+    }
+    return letter;
+}
+function letterToColumn(letter) {
+    var column = 0, length = letter.length;
+    for (var i = 0; i < length; i++) {
+        column += (letter.charCodeAt(i) - 64) * Math.pow(26, length - i - 1);
+    }
+    return column;
+}
+var litmosTestCode = {
+    "id": 4513,
+    "created": "2019-05-06T01:13:19.533",
+    "type": "achievement.earned",
+    "object": "event",
+    "data": {
+        "userId": "yj-nr8PhW8o1",
+        "userName": "sample",
+        "courseId": "nAcqwEA8jUo1",
+        "title": "Course Demo",
+        "code": "",
+        "achievementDate": "2019-05-06T01:12:35.990",
+        "compliantTilldate": null,
+        "result": "Completed",
+        "type": "Course Completed",
+        "firstName": "Sample",
+        "lastName": "User",
+        "achievementId": 368800,
+        "certificateId": "biZrK8ab0LE1"
+    }
+};
+/**
+ * here is an example of me pushing some things
+ */
+var paramsString = 'lastName=User&code&compliantTilldate&certificateId=biZrK8ab0LE1&achievementId=368800&userName=c3u30945835e&title=Course+Demo&type=Course+Completed&userId=c3u308757327e&result=Completed&firstName=Sample&achievementDate=2019-05-06T01%3A12%3A35.990&courseId=asdfljasdj%3Bl3245i734';
+function getJsonFromParams(params) {
+    var paramArray = params.split("&");
+    var paramsObj = {};
+    paramArray.forEach(function (pair) {
+        var key = pair.split("=")[0];
+        var value = pair.split("=")[0];
+        paramsObj[key] = pair;
+    });
+    return paramsObj;
+}
+//# sourceMappingURL=module.js.map
