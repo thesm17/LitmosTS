@@ -179,6 +179,29 @@ function runner(payload) {
     prepResults += "\n" + JSON.stringify(results) + "Sheet updated with webhook data. Script finished.";
     return prepResults;
 }
+function backfillRunner(companyId, completedCourseIDs, row) {
+    //Individually post one course at a time. 
+    var courseResults = completedCourseIDs.map(function (courseID) {
+        var companyIDCell = { row: row, column: 1 };
+        var prepResults = "";
+        //check the ss for prior achievements for this specific course
+        if (courseID !== "") {
+            var achievementData = getNumberOfAchievments(courseID, companyIDCell);
+            prepResults += "\nAchievement Data: \n" + achievementData.achievementCol + " is the column number for the course of choice\n" + achievementData.numberOfPriorCompletions + " is the number of prior completions";
+            //Add 1 to it
+            var newNumCompletions = iterateAchievements(achievementData.numberOfPriorCompletions, 1);
+            prepResults += "\nNew completions: " + newNumCompletions;
+            //Post the new results to the proper row in the spreadsheet
+            var results = updateCompanyAchievementCell(companyIDCell, achievementData.achievementCol, courseID, newNumCompletions);
+            prepResults += "\n" + JSON.stringify(results) + "Sheet updated with backfilled data. Script finished.";
+            Logger.log(prepResults);
+            return prepResults;
+        }
+        else
+            return "Empty course ID.";
+    });
+    Logger.log(courseResults.length + " courses backfilled for company " + companyId);
+}
 var testCourseInfo = {
     userId: "c100u234987e",
     courseId: "63754",

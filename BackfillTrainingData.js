@@ -1,40 +1,12 @@
+// Compiled using ts2gas 3.4.4 (TypeScript 3.7.5)
+var exports = exports || {};
+var module = module || { exports: exports };
 "use strict";
 var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 function runThisNow() {
-    var userProperties = PropertiesService.getUserProperties();
-    var loopCounter = Number(userProperties.getProperty('loopCounter'));
-    var page = Number(userProperties.getProperty('page'));  
-    var sheet = ss.getSheets()[page];
-    var totalRows = sheet.getLastRow();
-    var limit = totalRows-2 //subtract 1 to deal with headers and 1 to deal with the problematic SHSP - 3 record
-  Logger.log("Page number "+page+" has "+limit+" workable rows")
-    //if there are still rows left:
-  if (loopCounter<limit) {
-    
-    // use the loop number to grab that row's company ID. then run that through getting company info, and use that to display onto the sheet.
-    var workingRow = loopCounter+3 //adds 1 to the looper to handle headers
-  
-    Logger.log("Working on row "+workingRow);
-   
-    //DO THE WORK HERE!!!!!!
-    updateRow(workingRow);
-    
-     // increment the properties service counter for the loop
-    loopCounter +=1;
-    userProperties.setProperty('loopCounter', loopCounter);
-    
-    // see what the counter value is at the end of the loop
-    Logger.log("Loop counter: "+loopCounter);
-  } else {
-    //There are no more rows to update, so delete the trigger
-    deletePageUpdateTrigger();
-  }}
-
-function runner2() {
-    var row = 327;
+    var row = 1;
     updateRow(row);
 }
-
 function updateRow(row) {
     //var companyIDCell: {row: number, col: number} = {row: row, col: 1};
     var companyID = sheet.getRange(row, 1).getValue();
@@ -79,4 +51,4 @@ function filterUsersByAchievement(users) {
 function onlyUnique(value, index, self) {
     return self.indexOf(value) === index;
 }
-//# sourceMappingURL=BackfillTrainingData.js.map
+//# sourceMappingURL=module.js.map

@@ -9,20 +9,25 @@ var sheet = ss.getActiveSheet();
  */
 function getNumberOfCompletions() {
     var rawDataSheet = ss.getSheetByName("Raw Data");
-    var cell = sheet.getActiveCell(), row = cell.getRow(), col = cell.getColumn();
-    var courseName = sheet.getRange(1, col).getValue();
-    var courseID = newvlookup(ss.getSheetByName("Course Name Lookup"), 2, 1, courseName);
-    var allCompanyCourses = rawDataSheet.getRange(row + ":" + row).getValues()[0];
-    var specificCourseCellColumn = 0;
-    for (var i = 1; i < allCompanyCourses.length; i++) {
-        if (stringsEqual(allCompanyCourses[i - 1], courseID))
-            specificCourseCellColumn = i;
-        else
-            continue;
+    if (rawDataSheet) {
+        var cell = sheet.getActiveCell(), row = cell.getRow(), col = cell.getColumn();
+        var courseName = sheet.getRange(1, col).getValue();
+        var courseID = newvlookup(ss.getSheetByName("Course Name Lookup"), 2, 1, courseName);
+        var allCompanyCourses = rawDataSheet.getRange(row + ":" + row).getValues()[0];
+        var specificCourseCellColumn = 0;
+        for (var i = 1; i < allCompanyCourses.length; i++) {
+            if (stringsEqual(allCompanyCourses[i - 1], courseID))
+                specificCourseCellColumn = i;
+            else
+                continue;
+        }
+        Logger.log(specificCourseCellColumn);
+        var numCompletions = rawDataSheet.getRange(row, specificCourseCellColumn + 1).getValue();
+        return numCompletions;
     }
-    Logger.log(specificCourseCellColumn);
-    var numCompletions = rawDataSheet.getRange(row, specificCourseCellColumn + 1).getValue();
-    return numCompletions;
+    else {
+        return null;
+    }
 }
 /*
 Imitates the Vlookup function. Receives:

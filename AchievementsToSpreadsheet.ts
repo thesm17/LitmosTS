@@ -30,6 +30,23 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     return ContentService.createTextOutput(results);
   }
 
+function doGet(e: any) {
+  if (e.parameter.username) {
+    var companyID: string = parseCompanyIdFromLitmosUsername(e.parameter.username)
+    var trainingResults = getCompanyTrainingRecordFromSheet(companyID);
+    console.log(companyID+", "+ JSON.stringify(trainingResults));
+    if (trainingResults){
+      var results = {
+        usernameInput: e.parameter.username,
+        trainingData: (trainingResults)
+      }
+      return HtmlService.createHtmlOutput(JSON.stringify(results));
+    }
+  }
+  else return HtmlService.createHtmlOutput("No username parameter given.");
+}
+
+
 function parseCompanyIdFromLitmosUsername (username: string)  {
   return username.split("u")[0].substr(1);
 }
@@ -199,6 +216,83 @@ function runner(payload:any ) {
   return prepResults;
 }
 
+function backfillRunner(companyId: string, completedCourseIDs: string[], row: number) {
+
+  //Individually post one course at a time. 
+  var courseResults: string[] = completedCourseIDs.map(courseID => {
+
+    var companyIDCell = {row: row, column: 1};
+    var prepResults:string = "";
+    //check the ss for prior achievements for this specific course
+    if (courseID!==""){
+      var achievementData = getNumberOfAchievments(courseID, companyIDCell);
+      prepResults += `\nAchievement Data: \n${achievementData.achievementCol} is the column number for the course of choice\n${achievementData.numberOfPriorCompletions} is the number of prior completions`
+      //Add 1 to it
+      var newNumCompletions = iterateAchievements(achievementData.numberOfPriorCompletions,1)
+      prepResults+=`\nNew completions: ${newNumCompletions}`;
+  
+      //Post the new results to the proper row in the spreadsheet
+      var results = updateCompanyAchievementCell(companyIDCell, achievementData.achievementCol,courseID, newNumCompletions);
+      prepResults+=`\n`+JSON.stringify(results)+`Sheet updated with backfilled data. Script finished.`;
+      Logger.log(prepResults);
+      return prepResults;
+      }else return "Empty course ID.";
+    })
+    Logger.log(`${courseResults.length} courses backfilled for company ${companyId}`);
+}
+
+function getCompanyTrainingRecordFromSheet(companyID: string) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SharpSpring App Training Completion Dash");
+
+  //If the spreadsheet exists
+  if (ss) {
+    
+    //Get the headers from the first row
+    var headers: string[] = ss.getRange("A1:J1").getValues()[0];
+
+    //Get the company's row number
+    var companyRow: number = getCompanyIDCellFromSS(companyID).row
+    
+    //If the company has any achievements
+    if (companyRow){
+      
+      //Get the company's training information from the SS
+      var companyData: string[] = ss.getRange(companyRow,1,1,10).getValues()[0];
+
+      //Format the training data object with {[col header]: [value]}
+      var trainingObj: {[header: string]: string}={};
+      
+      headers.forEach( (col:string, index) => {
+
+        //create key value pairs like {"Company ID": "3"} or {"MA Essentials": "0"}
+        trainingObj[col] = companyData[index];
+      });
+      return trainingObj;
+    }
+  
+    else {
+      console.log("No achievements logged for this company");
+      return null;
+    }
+
+  }
+else {
+  console.log("This sheet does not exist.");
+  return null;}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 var testCourseInfo = {
@@ -272,4 +366,3 @@ paramArray.forEach(pair => {
 })
 return paramsObj;
 }
-

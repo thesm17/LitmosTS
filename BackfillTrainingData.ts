@@ -13,10 +13,20 @@ function updateRow(row: number) {
   //Get all the users associated with the ShSp company ID from Litmos. 
   var users = getAllCompanyUsers(companyID);
   if (users) {
+    
+    //Get all achievements from all users
     var allUserAchievements = users.map(user => {return getUserAchievements(user.Id)});
     
-    var allCompanyAchievements: [string]=[allUserAchievements.join()];
-    var uniqueCompanyAchievements: [string]= [""]
+    //Get them all into a 1d array
+    var allCompanyAchievements: string[]=allUserAchievements.join().split(",");
+    
+    //Get all the unique course completions
+    //This does lose number of unique completions, but that's ok in this case since we're just backfilling
+    var uniqueCompanyAchievements: string[]= allCompanyAchievements.filter(onlyUnique);
+
+    //For each achievement, pretend that it's being posted through a webhook and run it!
+    var results = backfillRunner(companyID, uniqueCompanyAchievements, row);
+
     return allCompanyAchievements;
   }
 }

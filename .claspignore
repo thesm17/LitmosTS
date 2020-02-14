@@ -1,3 +1,5 @@
 **/node_modules/**
 AchievementsToSpreadsheet.js
 ParseRawData.js
+BackfillTrainingData.js
+asyncHelpers.js
