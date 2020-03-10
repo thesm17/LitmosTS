@@ -16,12 +16,13 @@ function getNumberOfCompletions() {
       if (stringsEqual(allCompanyCourses[i-1],courseID))specificCourseCellColumn=i;
       else continue;        
   }
-  Logger.log(specificCourseCellColumn);
+  console.log(specificCourseCellColumn);
   var numCompletions = rawDataSheet.getRange(row, specificCourseCellColumn + 1).getValue();
   return numCompletions;
   }
   else {return null}
 }
+
 /*
 Imitates the Vlookup function. Receives:
 1. sheet - A reference to the sheet you would like to run Vlookup on
@@ -33,7 +34,7 @@ Once the cell of the [value] has been found, the returned parameter would be the
 function newvlookup(sheet: any, column: number, index: number, value: string) {
     var lastRow = sheet.getLastRow();
     var data = sheet.getRange(1, column, lastRow, column + index).getValues();
-    Logger.log(data);
+    console.log(data);
     for (var i = 0; i < data.length; ++i) {
         if (data[i][0] == value) {
             return data[i][index];

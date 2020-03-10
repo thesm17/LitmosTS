@@ -18,6 +18,7 @@
   "homepage": "https://github.com/thesm17/LitmosTS#readme",
   "dependencies": {
     "@types/google-apps-script": "^1.0.10",
+    "@types/node": "^13.9.0",
     "bottleneck": "^2.19.5",
     "clasp": "^1.0.0",
     "node-fetch": "^2.6.0",

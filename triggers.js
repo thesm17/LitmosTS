@@ -1,7 +1,8 @@
 function backfillPage1() {
   userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty('loopCounter', 157);
-  setPage(0);
+  userProperties.setProperty('loopCounter', 3);
+  //Commenting out the setPage() to not interfere. Can be reactivated if things get better fixed.
+  //setPage(0);
   ScriptApp.newTrigger('runThisNow').timeBased().everyMinutes(1).create();
 }
 

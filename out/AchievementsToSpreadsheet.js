@@ -16,16 +16,41 @@ function doPost(e) {
      */
     var results = "Incoming data: " + JSON.stringify(payload) + "\n";
     results += runner(payload);
-    var webHookTesterurl = "https://webhook.site/3b1ba15c-54d2-4278-b254-95d28f8c1af1";
-    var options = {
-        'method': 'POST',
-        'contentType': 'application/json',
-        // Convert the JavaScript object to a JSON string.
-        //'payload' : `Keys: ${keys}\nValues: ${values}`
-        'payload': results
-    };
-    UrlFetchApp.fetch(webHookTesterurl, options);
+    console.log(results);
+    // also for testing
+    try {
+        var webHookTesterurl = "https://webhook.site/#!/53dc1d7f-2dc4-4f8c-a7b2-377fb6849011";
+        var options = {
+            'method': 'POST',
+            'contentType': 'application/json',
+            // Convert the JavaScript object to a JSON string.
+            //'payload' : `Keys: ${keys}\nValues: ${values}`
+            'payload': results
+        };
+        var webhookResponse = UrlFetchApp.fetch(webHookTesterurl, options);
+        console.log(webhookResponse);
+    }
+    catch (e) {
+        console.log("There was some kind of error posting to the webhook testing site.");
+    }
+    //return results to poster
     return ContentService.createTextOutput(results);
+}
+function doGet(e) {
+    if (e.parameter.username) {
+        var companyID = parseCompanyIdFromLitmosUsername(e.parameter.username);
+        var trainingResults = getCompanyTrainingRecordFromSheet(companyID);
+        console.log(companyID + ", " + JSON.stringify(trainingResults));
+        if (trainingResults) {
+            var results = {
+                usernameInput: e.parameter.username,
+                trainingData: (trainingResults)
+            };
+            return HtmlService.createHtmlOutput(JSON.stringify(results));
+        }
+    }
+    else
+        return HtmlService.createHtmlOutput("No username parameter given.");
 }
 function parseCompanyIdFromLitmosUsername(username) {
     return username.split("u")[0].substr(1);
@@ -201,6 +226,36 @@ function backfillRunner(companyId, completedCourseIDs, row) {
             return "Empty course ID.";
     });
     Logger.log(courseResults.length + " courses backfilled for company " + companyId);
+}
+function getCompanyTrainingRecordFromSheet(companyID) {
+    var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SharpSpring App Training Completion Dash");
+    //If the spreadsheet exists
+    if (ss) {
+        //Get the headers from the first row
+        var headers = ss.getRange("A1:J1").getValues()[0];
+        //Get the company's row number
+        var companyRow = getCompanyIDCellFromSS(companyID).row;
+        //If the company has any achievements
+        if (companyRow) {
+            //Get the company's training information from the SS
+            var companyData = ss.getRange(companyRow, 1, 1, 10).getValues()[0];
+            //Format the training data object with {[col header]: [value]}
+            var trainingObj = {};
+            headers.forEach(function (col, index) {
+                //create key value pairs like {"Company ID": "3"} or {"MA Essentials": "0"}
+                trainingObj[col] = companyData[index];
+            });
+            return trainingObj;
+        }
+        else {
+            console.log("No achievements logged for this company");
+            return null;
+        }
+    }
+    else {
+        console.log("This sheet does not exist.");
+        return null;
+    }
 }
 var testCourseInfo = {
     userId: "c100u234987e",

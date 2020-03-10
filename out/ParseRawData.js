@@ -4,7 +4,6 @@ var sheet = ss.getActiveSheet();
 /**
  * this function will take a company ID as a param, and use the active cell column to look up the course name, and use that to look up the course ID. then find the corresponding row on the raw data sheet to identify the proper column, and grab the number of completions
  */
-
 function getNumberOfCompletions() {
     var rawDataSheet = ss.getSheetByName("Raw Data");
     if (rawDataSheet) {
@@ -20,8 +19,7 @@ function getNumberOfCompletions() {
                 continue;
         }
         Logger.log(specificCourseCellColumn);
-      if (specificCourseCellColumn>0) {
-        var numCompletions = rawDataSheet.getRange(row, specificCourseCellColumn + 1).getValue();} else numCompletions=0;
+        var numCompletions = rawDataSheet.getRange(row, specificCourseCellColumn + 1).getValue();
         return numCompletions;
     }
     else {

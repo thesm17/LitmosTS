@@ -3,8 +3,10 @@ var exports = exports || {};
 var module = module || { exports: exports };
 "use strict";
 var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+
+
 function runThisNow() {
-    var row = 1;
+    var row = 513;
     updateRow(row);
 }
 function updateRow(row) {
@@ -24,6 +26,8 @@ function updateRow(row) {
         var results = backfillRunner(companyID, uniqueCompanyAchievements, row);
         return allCompanyAchievements;
     }
+  else {console.log("No users")
+       return "No users."}
 }
 /**
  * @param {[Object]} users has all company user objects

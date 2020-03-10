@@ -14,19 +14,30 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
      *   var paramsObject = getJsonFromParams(payload)
      * 
      */
-  
  
     var results: string = `Incoming data: ${JSON.stringify(payload)}\n`
     results += runner(payload);
-    var webHookTesterurl= "https://webhook.site/3b1ba15c-54d2-4278-b254-95d28f8c1af1";
-    var options = {
+    console.log(results);
+
+    // also for testing
+    try {
+      var webHookTesterurl= "https://webhook.site/#!/53dc1d7f-2dc4-4f8c-a7b2-377fb6849011";
+      var options = {
       'method' : 'POST',
       'contentType': 'application/json', 
       // Convert the JavaScript object to a JSON string.
       //'payload' : `Keys: ${keys}\nValues: ${values}`
       'payload': results
-    };
-    UrlFetchApp.fetch(webHookTesterurl,<any> options);
+      };
+      
+      var webhookResponse = UrlFetchApp.fetch(webHookTesterurl,<any> options);
+      console.log(webhookResponse);
+    } catch (e) {
+      console.log("There was some kind of error posting to the webhook testing site.")
+    }
+    
+
+    //return results to poster
     return ContentService.createTextOutput(results);
   }
 
@@ -282,19 +293,6 @@ else {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 var testCourseInfo = {
   userId: "c100u234987e",
   courseId: "63754",
@@ -355,14 +353,3 @@ var litmosTestCode = {
  */
 
  var paramsString: string = 'lastName=User&code&compliantTilldate&certificateId=biZrK8ab0LE1&achievementId=368800&userName=c3u30945835e&title=Course+Demo&type=Course+Completed&userId=c3u308757327e&result=Completed&firstName=Sample&achievementDate=2019-05-06T01%3A12%3A35.990&courseId=asdfljasdj%3Bl3245i734';
-
-function getJsonFromParams(params : string) {
-var paramArray = params.split("&")
-var paramsObj: { [key:string]:any} = {};
-paramArray.forEach(pair => {
-  let key = pair.split("=")[0]
-  let value = pair.split("=")[0]
-  paramsObj[key]=pair;
-})
-return paramsObj;
-}
