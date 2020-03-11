@@ -4,7 +4,7 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
  * @param {Object} e -    An individual achievement being sent from litmos
  * @return {TextOutput} A stringified version of the payload 
  */
-  function doPost(e: any) {
+function doPost(e: any) {
     var payload = JSON.parse(e.postData.contents).data
     var keys = Object.keys(payload);
 
@@ -39,7 +39,7 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 
     //return results to poster
     return ContentService.createTextOutput(results);
-  }
+}
 
 function doGet(e: any) {
   if (e.parameter.username) {
@@ -77,35 +77,60 @@ function getCompanyIDAndCourseID (payload:{userName: string, courseId: string, o
 }
 
 /**
- * Search active spreadsheet for the matching companyID row. If one doesn't exist, create it at the bottom. Return the cell where the company ID is located. If the sheet doesn't exist, return null
+ * Search the column of company IDs of the active spreadsheet for the given companyID. 
+ * If one doesn't exist, create it at the bottom. 
+ * Return the cell where the company ID is located. 
+ * If the sheet doesn't exist, return `null`
  * @param {String} companyID SharpSpring company ID.
- * @return {Object {number} } {row, column} where the company ID exists.
+ * @param {number} column Column containing list of company IDs. The default is column 1
+ * @return {Object} {row, column} where the company ID exists.
  */
 
- function getCompanyIDCellFromSS (companyID: string) {
+function getCompanyIDCellFromSS (companyID: string, column: number = 1) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  //Look for the Company ID header from the first row and set it as the column we're looking for
-  var companyIDColumn=1;
+  
+  //Define the column to search for matching companyID
+  var companyIDColumn=column;
+
+  //Define the bottom row as a search limit
   var lastRow = sheet.getLastRow();
-  //var companyIDColumn = sheet.getRange("1:1").createTextFinder("Company ID").findNext()?.getColumn() || 1;
-  Logger.log(`${columnToLetter(companyIDColumn)}1:${columnToLetter(companyIDColumn)}${lastRow}`);
+  
+  //Get the range from the spreadsheet and log the range and values
   var r = sheet.getRange(`${columnToLetter(companyIDColumn)}1:${columnToLetter(companyIDColumn)}${lastRow}`);
-  Logger.log("Lookup range for company IDs: "+r.getValues());
+    console.log(`Lookup range: ${columnToLetter(companyIDColumn)}1:${columnToLetter(companyIDColumn)}${lastRow}`);
+    console.log("Lookup range for company IDs: "+r.getValues());
 
   //search range r (which is just a single column) for the given company ID. If it doesn't exist, return the first empty row
   var textFinder = r.createTextFinder(companyID);
+    
+  //returns the row where the companyID was found else null if it isn't in any row of this column
   var firstOccurance = textFinder.findNext();
 
-  var row:number;
-  //returns null if it isn't in the sheet
-  if (firstOccurance!==null) {row = firstOccurance.getRow()} else row = sheet.getLastRow()+1;
-Logger.log(`Row: ${row}`);
-  //Set a blank cell to the company ID or re-write the company value over itself
-  var companyIDCell = sheet.getRange(row,companyIDColumn).setValue(companyID);
+  var row:number, companyIDCell;
+  
+  //Check if the companyID was found.
+  if (firstOccurance!==null) {
+    
+    //If the companyID was found, set companyIDCell to that cell
+    row = firstOccurance.getRow();
+    companyIDCell = sheet.getRange(row,companyIDColumn)
+      console.log(`Company ID located in row: ${row}`);
+  } else {
 
-  //Log result
-  Logger.log(`Company ID ${companyID} is located at ${companyIDCell.getRow()}, ${companyIDCell.getColumn()} (row, col)`);
-  return {row: companyIDCell.getRow(), column: companyIDColumn};
+    //if the companyID wasn't found, write the first blank cell in the range with the given companyID and use the as the companyIDCell
+    row = lastRow+1;
+    companyIDCell = sheet.getRange(row,companyIDColumn).setValue(companyID);
+      console.log(`Company ID was not found, so it will be added to the bottom of the column in row: ${row}`);
+  }
+    //Log result
+    console.log(`Company ID ${companyID} is located at ${companyIDCell.getRow()}, ${companyIDCell.getColumn()} (row, col)`);
+  
+  //There's a question of security vs speed on the return
+  //The return could use local vars for speed and possibly miss something
+  //or grab the values from the sheet for safety but have to add access speed. 
+  //The risk seems low but choose as you want
+  return {row: row, column: companyIDColumn};
+  //return {row: companyIDCell.getRow(), column: companyIDCell.getColumn()};
  }
 
 /**

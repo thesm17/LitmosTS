@@ -3,4 +3,5 @@ AchievementsToSpreadsheet.js
 ParseRawData.js
 BackfillTrainingData.js
 asyncHelpers.js
-BottleneckTest.ts
+ts-integration-test
+out/ts-integration-test

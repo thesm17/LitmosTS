@@ -1,1 +1,3 @@
 **/node_modules/**
+ts-integration-test
+out/ts-integration-test
