@@ -84,9 +84,6 @@ function fetcher(url, options) {
  * @param username Litmos username following cXXXXuXXXXe pattern
  * @return
  */
-function getUserAchievements(username) {
-    return getLitmosAchievements(username);
-}
 function getUser2(username) {
     return __awaiter(this, void 0, void 0, function () {
         var url, user, err_1;
@@ -106,22 +103,6 @@ function getUser2(username) {
                     Logger.log(err_1);
                     return [3 /*break*/, 4];
                 case 4: return [2 /*return*/];
-            }
-        });
-    });
-}
-function getLitmosAchievements(username) {
-    return __awaiter(this, void 0, void 0, function () {
-        var url, achievements, achievementCourseIds;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    url = "https://api.litmos.com/v1.svc/achievements?userid=" + username + "&source=smittysapp&format=json";
-                    return [4 /*yield*/, fetcher(url, options)];
-                case 1:
-                    achievements = _a.sent();
-                    achievementCourseIds = achievements.map(function (achievement) { return achievement.CourseId; });
-                    return [2 /*return*/, achievementCourseIds];
             }
         });
     });

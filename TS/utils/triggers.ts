@@ -1,10 +1,9 @@
 function runEveryNight() {
-  ScriptApp.newTrigger('updatePage1').timeBased().atHour(1).everyDays(1).create();
-  ScriptApp.newTrigger('updatePage2').timeBased().atHour(3).everyDays(1).create();
+  ScriptApp.newTrigger('updatePage1').timeBased().atHour(20).everyDays(1).create();
+  ScriptApp.newTrigger('updatePage2').timeBased().atHour(1).everyDays(1).create();
   ScriptApp.newTrigger('updatePage3').timeBased().atHour(5).everyDays(1).create();
-
+  ScriptApp.newTrigger('updatePage4').timeBased().atHour(12).everyDays(1).create();
 }
-
 
 //with a 1 minute delay between, run through all the rows in the first, then second, then third sheets
 function updatePage1() {
@@ -12,22 +11,35 @@ function updatePage1() {
   setPage(0);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
+
 function updatePage2() {
   refreshUserProps();
   setPage(1);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
+
 function updatePage3() {
   refreshUserProps();
   setPage(2);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
+function updatePage4() {
+  //reset loop counter to 0
+  refreshUserProps();
+
+  //set the appropriate page for updating
+  setPage(3);
+  console.log("Set page to (zero-indexed) 3");
+  //establish trigger to update training statuses
+  ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
+}
+
 //this is going to be slightly more tricky trying to figure out how to get the page into the trigger. come back to this one later
 function updateArbitraryPage() {
-  refreshUserProps();
-  setPage("somePage");
-  ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
+  // refreshUserProps();
+  // setPage("somePage");
+  // ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
 function refreshUserProps() {
@@ -45,12 +57,17 @@ function updateTrainingStatusOnSheet() {
   var loopCounter = Number(userProperties.getProperty('loopCounter'));
   var page = Number(userProperties.getProperty('page'));
   
-  // if (Number.isNan(page)) {
-  //   //figure out how to set the proper page using the current sheet?
-  // }  
+   
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheets()[page];
-  var totalRows = sheet.getLastRow();
+
+  //Test to make sure the proper sheet is being edited
+  console.log(`Sheet to update: ${sheet.getSheetName()}`);
+  
+  //This line is improperly grabbing all 1000 rows even though most are blank. Going to try again with a custom function.
+  //var totalRows = sheet.getLastRow();
+  var totalRows = getLastRowInColumn_(sheet, 1);
+
   var limit = totalRows-1 //subtract 1 to deal with headers
   Logger.log("Page number "+page+" has "+limit+" workable rows")
   
@@ -91,18 +108,6 @@ function updateTrainingStatusOnSheet() {
 
 }
 
-function logTestCompanyTrainingStatus () {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheets()[1];
-  var companyID = "308479799";
-  var row = 9;
-  var rTC = "7";
-  var trainingData = getCompanyTrainingStatus(companyID, rTC);
-  var formattedRange = formatRange(trainingData);
-  var sheetUpdateStatus = updateSheetWithNewTrainingInfo(row, formattedRange, sheet);
-  Logger.log("\nSheet successfully updated with the data: "+sheetUpdateStatus.getValues());
-}
-
 function getCertifiedUsers_ (ts) {
   //give a list of certified learners
   var certifiedUsers;
@@ -129,21 +134,28 @@ function getRecentUsers_ (ts) {
   return recentLearners;
 }
 
-function updateSheetWithNewTrainingInfo (row, rangeValues, sheet) {
+function updateSheetWithNewTrainingInfo (row, rangeValues, sheet, trainingStatusColumn) {
+
+  //check if the training status column param was given
+  //if not, prep data to be stuck into column 5 (or any column based on the sheet's needs)
+  if (!trainingStatusColumn) {
+    trainingStatusColumn=4
+  }
   Logger.log("Row to post to: "+row);
   Logger.log("Range values: \n"+rangeValues);
-  var range = sheet.getRange(row,4,1,5);  
+  var range = sheet.getRange(row,trainingStatusColumn,1,5);  
   var formattedResults = range.setValues([rangeValues]);
+  var actualRange = range.getValues();
   return formattedResults;
 }
 
 function formatRange(trainingStatus) {
   /*need to set:
-  *C-row to training status
-  *D-row to the current time
-  *E-row to number of learners
-  *F-row to name of certified learners
-  *G-Row to names of users with recent completions
+  *E-row to training status
+  *F-row to the current time
+  *G-row to number of learners
+  *H-row to name of certified learners
+  *I-Row to names of users with recent completions
   use setValues
   */
 
@@ -170,4 +182,38 @@ function deletePageUpdateTrigger() {
   for (var i = 0; i < triggersToDelete.length; i++) {
     ScriptApp.deleteTrigger(triggersToDelete[i]);
   }
+}
+
+function updateCustomRow() {
+  //define the row and sheet to update based on sheets row #
+  var row = 3;
+  //var sheetNum = 0;
+  refreshUserProps();
+  setPage(3);
+  var userProperties = PropertiesService.getUserProperties();
+  var loopCounter = Number(userProperties.getProperty('loopCounter'));
+  var sheetNum = Number(userProperties.getProperty('page'));
+  //Run it!
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheets()[sheetNum];
+  var sheetName = sheet.getName();
+  var companyID = sheet.getRange(row,1).getValue();
+  var rTC = "7";
+  var trainingData = getCompanyTrainingStatus(companyID, rTC);
+  var formattedRange = formatRange(trainingData);
+  var sheetUpdateStatus = updateSheetWithNewTrainingInfo(row, formattedRange, sheet);
+  Logger.log("\nSheet successfully updated with the data: "+sheetUpdateStatus.getValues());
+}
+
+function learnUserProperties() {
+ userProperties = PropertiesService.getUserProperties();
+ var props =  userProperties.getProperties()
+ var name = sheet.getSheetName();
+  Logger.log("props gotten!");
+}
+
+function getLastRowInColumn_ (sheet,col) {
+  var row = 1;
+  while (sheet.getRange(row,col).isBlank()==false) {row++}
+  return row-1;
 }

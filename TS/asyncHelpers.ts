@@ -38,10 +38,6 @@ async function fetcher(url: string, options: any) {
  * @return 
  */
 
-function getUserAchievements (username: string) {
-  return getLitmosAchievements(username);
-  }
-
 async function getUser2(username:string ) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
@@ -53,15 +49,6 @@ async function getUser2(username:string ) {
     Logger.log(err); 
   }
 }
-
-async function getLitmosAchievements(username: string) {
-  var url = "https://api.litmos.com/v1.svc/achievements?userid="+username+"&source=smittysapp&format=json";
-
-    //var achievements: [{CourseId: string, others?: any}] =  fetcher(url,<any>options) ;
-    var achievements = await fetcher(url,<any>options) ;
-    var achievementCourseIds = achievements.map((achievement: { CourseId: any; }) => {return achievement.CourseId})
-    return achievementCourseIds;
-  }
 
   async function getAllCompanyUsers2(companyID: string) {
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";

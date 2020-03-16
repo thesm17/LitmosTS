@@ -5,10 +5,7 @@ var options = {
     'headers': {
       'apikey': 'ed8c2c0f-8d9f-4e0d-a4ff-76c897e53c54' }
   }
-const getCompanyUsers = async (companyID: string) => {
-  var companyUserData = await getAllCompanyUsers(companyID);
-  return companyUserData;
-}
+
 
 const convertLitmosDate = (litmosDate: string) => {
   var rawDate = litmosDate;
@@ -21,15 +18,15 @@ const convertLitmosDate = (litmosDate: string) => {
 return usefulDate;
 }
 
-const getUserData = async (username: {UserName: string; CourseId: string; Title: string; AchievementDate: string; others?: any; }) => {
+const getUserData = async (user: {UserName: string; others?: any; }) => {
 
-  var userAccountData = (await getUser(username.UserName));
+  var userAccountData: { UserName: string; FullName: string, LastLogin: string; CreatedDate: string; others?: any; } = (await getUser(user.UserName));
 
-  var allAchievements = await getLitmosAchievement(username);
+  var allAchievements = await getLitmosAchievements(user.UserName);
 
   var recentAchievements = getRecentAchievements(allAchievements,7);
 
-  var certified = await certificationTestPassed(username);
+  var certified = await getUserCertificationStatus(allAchievements);
 
   var recentCourseTitle, recentCourseCompletionDate;
 
@@ -80,20 +77,18 @@ const getRecentAchievements = (achievements: any[], numDays: number) => {
   return recent;
 }
 
-const certificationTestPassed = async (userAchievements: { UserName: string; CourseId: string; Title: string | undefined; AchievementDate: string; others?: any; }) => {
+const getUserCertificationStatus = async (userAchievements: [{ CourseId: string; Title: string | undefined; AchievementDate: string; others?: any; }]) => {
   //below are the course IDs that together make up certification
   // PgqK7l17TdE1 is the MA essentials cert exam
   // ax6BzyMrCds1 is the SWS cert exam
   var certExamIds = ["PgqK7l17TdE1"];
   
   if (certExamIds.length==0){
-    throw new Error('{result:"No courses have been specific for awarding certification."}');
+    throw new Error("No courses have been specific for awarding certification.");
   
   }
-  //GET courses from litmos with [username]
-  //will return JSON found above as `data`
-  var userAchievementData = [userAchievements];
-  var examsPassed = userAchievementData.filter(courseID => (certExamIds.includes(courseID.CourseId)));
+  
+  var examsPassed = userAchievements.filter(achievement => (certExamIds.includes(achievement.CourseId)));
   return {
     certificationPercent: (examsPassed.length*100/certExamIds.length),
     certificationComplete: Math.floor(examsPassed.length/certExamIds.length),
@@ -120,7 +115,7 @@ const convertThresholdToDate = (numdays: number|string) => {
 
 const getCompanyTrainingStatus = async (companyID: string, trainingThreshold: number|string) => {
   var trainingThresholdDate = convertThresholdToDate(trainingThreshold);
-  var users = await getCompanyUsers(companyID);
+  var users = await getAllCompanyUsers(companyID);
   var userData = await getAllUserData(users);
   
   //array of certified users
@@ -171,14 +166,13 @@ const getCompanyTrainingStatus = async (companyID: string, trainingThreshold: nu
     }
   }
 
+/**
+ * 
+ * @param username from Litmos
+ * @returns user data from Litmos
+ */  
 const getUser = async (username: string) => {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
-  var options = { 
-    method: 'GET',
-    headers: {      
-      'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6' 
-    }
-  }
 
   try {
     var result = await fetch(url,options);
@@ -190,33 +184,19 @@ const getUser = async (username: string) => {
   }
 }
 
-const getLitmosAchievement = async (username: {UserName: string, others?: any}, since?: string) => {
-if (since) {
-
-  var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json&since="+since;
-  var options = { 
-    method: 'GET',
-    headers: {      
-      'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6' 
-    }
-  }
-}
-else {
-  var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json";
-  var options = { 
-    method: 'GET',
-    headers: {      
-      'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6' 
-    }
-  }
-} 
-try {
-  var result = await fetch(url,options);
-  var achievements = await result.json();
-  return achievements;
-} catch (err) {
-  console.log(err); 
-  throw new Error(err);
+const getLitmosAchievements = async (username:  string, since?: string) => {
+  if (since) {
+    var url = "https://api.litmos.com/v1.svc/achievements?userid="+username+"&source=smittysapp&format=json&since="+since;
+  } else {
+    var url = "https://api.litmos.com/v1.svc/achievements?userid="+username+"&source=smittysapp&format=json";
+  } 
+  try {
+    var result = await fetch(url,options);
+    var achievements = await result.json();
+    return achievements;
+  } catch (err) {
+    console.log(err); 
+    throw new Error(err);
   }
 
 }
@@ -224,16 +204,10 @@ try {
 const getAllCompanyUsers = async (companyID: string) => {
   
   var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
-  var options = { 
-    method: 'GET',
-    headers: {      
-      'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6' 
-    }
-  }
-  
+    
   try {
     var result = await fetch(url,options);
-    var users = await result.json();
+    var users: [{UserName: string, FullName: string, LastLogin: string,others?:string}] = await result.json();
     return users;
   } catch (err) {
     console.log(err); 

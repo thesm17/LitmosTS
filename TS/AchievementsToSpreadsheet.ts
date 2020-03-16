@@ -57,11 +57,6 @@ function doGet(e: any) {
   else return HtmlService.createHtmlOutput("No username parameter given.");
 }
 
-
-function parseCompanyIdFromLitmosUsername (username: string)  {
-  return username.split("u")[0].substr(1);
-}
-
 /**
 * Parse SharpSpring companyID and course ID from payload
 * @param {Object} payload - The payload from Litmos

@@ -13,6 +13,9 @@ function getCompanyTrainingStatus (companyID, trainingThreshold) {
   var userData = getAllUserData(users);
   Logger.log("All data for all users gotten.\n")
   
+  //pass individual training data to SharpSpring lead records
+  var shspSuccess = updateShSpTrainingStatus(userData);
+
   //array of certified users
   var certifiedUsers = userData.filter(function (user) {return user.certificationStatus.certificationComplete} );
   Logger.log("Number of certified users: "+certifiedUsers.length);
@@ -27,9 +30,6 @@ function getCompanyTrainingStatus (companyID, trainingThreshold) {
 
   //array of people who started training in the report threshold range
   var startedInLastWeekUsers = userData.filter(function (user) {
-  //   Logger.log("number of days since creation: "+user.daysSinceCreatedDate)
-  //   Logger.log("training threshold: "+trainingThreshold)
-  //   Logger.log(+user.daysSinceCreatedDate<+trainingThreshold);
     return (+user.daysSinceCreatedDate<=+trainingThreshold)});
   Logger.log("Number of recently created users: "+startedInLastWeekUsers.length);
 
@@ -99,12 +99,13 @@ function getUserData (username) {
     recentCourseCompletionDate = convertLitmosDate(recentAchievements[0].AchievementDate);}
   else {
     recentCourseTitle = "No recent courses completed";
-    recentCourseCompletionDate = {}
+    recentCourseCompletionDate = ""
   }
 
 
   return {
     name: userAccountData.FullName,
+    email: userAccountData.Email,
     certifiedUser: certified.certificationComplete,
     certificationStatus: certified,
     totalCoursesCompleted: allAchievements.length,

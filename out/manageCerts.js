@@ -43,17 +43,6 @@ var options = {
         'apikey': 'ed8c2c0f-8d9f-4e0d-a4ff-76c897e53c54'
     }
 };
-var getCompanyUsers = function (companyID) { return __awaiter(void 0, void 0, void 0, function () {
-    var companyUserData;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, getAllCompanyUsers(companyID)];
-            case 1:
-                companyUserData = _a.sent();
-                return [2 /*return*/, companyUserData];
-        }
-    });
-}); };
 var convertLitmosDate = function (litmosDate) {
     var rawDate = litmosDate;
     var convert = rawDate.substr(-7, 5);
@@ -64,18 +53,18 @@ var convertLitmosDate = function (litmosDate) {
     usefulDate.setMilliseconds(+lateDate + +conversionFactor);
     return usefulDate;
 };
-var getUserData = function (username) { return __awaiter(void 0, void 0, void 0, function () {
+var getUserData = function (user) { return __awaiter(void 0, void 0, void 0, function () {
     var userAccountData, allAchievements, recentAchievements, certified, recentCourseTitle, recentCourseCompletionDate;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, getUser(username.UserName)];
+            case 0: return [4 /*yield*/, getUser(user.UserName)];
             case 1:
                 userAccountData = (_a.sent());
-                return [4 /*yield*/, getLitmosAchievement(username)];
+                return [4 /*yield*/, getLitmosAchievements(user.UserName)];
             case 2:
                 allAchievements = _a.sent();
                 recentAchievements = getRecentAchievements(allAchievements, 7);
-                return [4 /*yield*/, certificationTestPassed(username)];
+                return [4 /*yield*/, getUserCertificationStatus(allAchievements)];
             case 3:
                 certified = _a.sent();
                 if (recentAchievements.length > 0) {
@@ -122,15 +111,14 @@ var getRecentAchievements = function (achievements, numDays) {
     });
     return recent;
 };
-var certificationTestPassed = function (userAchievements) { return __awaiter(void 0, void 0, void 0, function () {
-    var certExamIds, userAchievementData, examsPassed;
+var getUserCertificationStatus = function (userAchievements) { return __awaiter(void 0, void 0, void 0, function () {
+    var certExamIds, examsPassed;
     return __generator(this, function (_a) {
         certExamIds = ["PgqK7l17TdE1"];
         if (certExamIds.length == 0) {
-            throw new Error('{result:"No courses have been specific for awarding certification."}');
+            throw new Error("No courses have been specific for awarding certification.");
         }
-        userAchievementData = [userAchievements];
-        examsPassed = userAchievementData.filter(function (courseID) { return (certExamIds.includes(courseID.CourseId)); });
+        examsPassed = userAchievements.filter(function (achievement) { return (certExamIds.includes(achievement.CourseId)); });
         return [2 /*return*/, {
                 certificationPercent: (examsPassed.length * 100 / certExamIds.length),
                 certificationComplete: Math.floor(examsPassed.length / certExamIds.length),
@@ -170,7 +158,7 @@ var getCompanyTrainingStatus = function (companyID, trainingThreshold) { return 
         switch (_a.label) {
             case 0:
                 trainingThresholdDate = convertThresholdToDate(trainingThreshold);
-                return [4 /*yield*/, getCompanyUsers(companyID)];
+                return [4 /*yield*/, getAllCompanyUsers(companyID)];
             case 1:
                 users = _a.sent();
                 return [4 /*yield*/, getAllUserData(users)];
@@ -220,18 +208,17 @@ var getCompanyTrainingStatus = function (companyID, trainingThreshold) { return 
         }
     });
 }); };
+/**
+ *
+ * @param username from Litmos
+ * @returns user data from Litmos
+ */
 var getUser = function (username) { return __awaiter(void 0, void 0, void 0, function () {
-    var url, options, result, user, err_1;
+    var url, result, user, err_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 url = baseUrl + "/users/" + username + "?source=smittysapp&format=json";
-                options = {
-                    method: 'GET',
-                    headers: {
-                        'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6'
-                    }
-                };
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 4, , 5]);
@@ -250,28 +237,16 @@ var getUser = function (username) { return __awaiter(void 0, void 0, void 0, fun
         }
     });
 }); };
-var getLitmosAchievement = function (username, since) { return __awaiter(void 0, void 0, void 0, function () {
-    var url, options, url, options, result, achievements, err_2;
+var getLitmosAchievements = function (username, since) { return __awaiter(void 0, void 0, void 0, function () {
+    var url, url, result, achievements, err_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 if (since) {
-                    url = "https://api.litmos.com/v1.svc/achievements?userid=" + username.UserName + "&source=smittysapp&format=json&since=" + since;
-                    options = {
-                        method: 'GET',
-                        headers: {
-                            'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6'
-                        }
-                    };
+                    url = "https://api.litmos.com/v1.svc/achievements?userid=" + username + "&source=smittysapp&format=json&since=" + since;
                 }
                 else {
-                    url = "https://api.litmos.com/v1.svc/achievements?userid=" + username.UserName + "&source=smittysapp&format=json";
-                    options = {
-                        method: 'GET',
-                        headers: {
-                            'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6'
-                        }
-                    };
+                    url = "https://api.litmos.com/v1.svc/achievements?userid=" + username + "&source=smittysapp&format=json";
                 }
                 _a.label = 1;
             case 1:
@@ -292,17 +267,11 @@ var getLitmosAchievement = function (username, since) { return __awaiter(void 0,
     });
 }); };
 var getAllCompanyUsers = function (companyID) { return __awaiter(void 0, void 0, void 0, function () {
-    var url, options, result, users, err_3;
+    var url, result, users, err_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c" + companyID + "u";
-                options = {
-                    method: 'GET',
-                    headers: {
-                        'apikey': '832c9ac0-b65e-4825-8c72-b53f2b66efd6'
-                    }
-                };
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 4, , 5]);
