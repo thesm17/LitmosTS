@@ -12,7 +12,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/out/asyncHelpers.js",
+      "program": "${workspaceFolder}/out/main.js",
       "outFiles": [
         "${workspaceFolder}/**/*.js"
       ]
@@ -24,7 +24,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/out/asyncHelpers.js",
+      "program": "${workspaceFolder}/out/main.js",
       "trace": true,
       "outFiles": [
         "${workspaceFolder}/**/*.js"

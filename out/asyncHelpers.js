@@ -87,7 +87,7 @@ function fetcher(url, options) {
 function getUserAchievements(username) {
     return getLitmosAchievements(username);
 }
-function getUser(username) {
+function getUser2(username) {
     return __awaiter(this, void 0, void 0, function () {
         var url, user, err_1;
         return __generator(this, function (_a) {
@@ -126,7 +126,7 @@ function getLitmosAchievements(username) {
         });
     });
 }
-function getAllCompanyUsers(companyID) {
+function getAllCompanyUsers2(companyID) {
     return __awaiter(this, void 0, void 0, function () {
         var url, users;
         return __generator(this, function (_a) {
@@ -164,5 +164,6 @@ function getCourseUsers(courseID) {
 function testRunner() {
     getLitmosAchievements("c308480811u313500657e");
 }
+parseCompanyIdFromLitmosUsername("c308480811u313500657e");
 testRunner();
 //# sourceMappingURL=asyncHelpers.js.map

@@ -12,7 +12,7 @@ async function fetcher(url: string, options: any) {
   //if UrlFetchApp is undefined, use fetch()
   if (typeof UrlFetchApp == "undefined") {
     console.log("UrlFetchApp is undefined, so attempting to process via plain fetch()");
-    try {
+    try { 
       var response;
       response = await fetch(url, options);
       return await response.json();
@@ -32,6 +32,7 @@ async function fetcher(url: string, options: any) {
     }
   }
 }
+
 /**
  * @param username Litmos username following cXXXXuXXXXe pattern
  * @return 
@@ -41,7 +42,7 @@ function getUserAchievements (username: string) {
   return getLitmosAchievements(username);
   }
 
-async function getUser(username:string ) {
+async function getUser2(username:string ) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
     
@@ -62,7 +63,7 @@ async function getLitmosAchievements(username: string) {
     return achievementCourseIds;
   }
 
-  async function getAllCompanyUsers(companyID: string) {
+  async function getAllCompanyUsers2(companyID: string) {
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
     var users: [{Id: string, UserName: string, FirstName:string, LastName:string, others?: any}] =  await fetcher(url,<any>options);
     if (users) return users; else return null;
@@ -75,12 +76,13 @@ async function getLitmosAchievements(username: string) {
       var users =  fetcher(url,<any>options);
       return users;
     } catch (err) {
-      Logger.log(err)
+      Logger.log(err) 
     } 
 }
 
 function testRunner(){
   getLitmosAchievements("c308480811u313500657e");
 }
-
+parseCompanyIdFromLitmosUsername("c308480811u313500657e");
 testRunner();
+
