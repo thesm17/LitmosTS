@@ -1,7 +1,7 @@
 **/node_modules/**
-AchievementsToSpreadsheet.js
-ParseRawData.js
-BackfillTrainingData.js
-asyncHelpers.js
-ts-integration-test
-out/ts-integration-test
+out/TS/**
+TS/**
+JS/**
+out/BottleneckTest.js
+out/main.js
+out/runners.js

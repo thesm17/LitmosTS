@@ -21,6 +21,7 @@
     "@types/node": "^13.9.0",
     "bottleneck": "^2.19.5",
     "clasp": "^1.0.0",
+    "fetch": "^1.1.0",
     "node-fetch": "^2.6.0",
     "typescript": "^3.7.5"
   }

@@ -1,7 +1,4 @@
-function getUserAchievements (username: string) {
-  return getLitmosAchievements(username);
-  }
-
+const fetch = require('node-fetch');
 var baseUrl = "https://api.litmos.com/v1.svc/";
 var options = { 
     'method': 'GET',
@@ -10,11 +7,45 @@ var options = {
       'apikey': 'ed8c2c0f-8d9f-4e0d-a4ff-76c897e53c54' }
   }
 
-function getUser(username:string ) {
+async function fetcher(url: string, options: any) {
+  //Check whether to use UrlFetchApp or plain old fetch, based on whether being run from node of from clasp
+  //if UrlFetchApp is undefined, use fetch()
+  if (typeof UrlFetchApp == "undefined") {
+    console.log("UrlFetchApp is undefined, so attempting to process via plain fetch()");
+    try {
+      var response;
+      response = await fetch(url, options);
+      return await response.json();
+    } catch (e) {
+      throw new Error(e)
+    }
+  } else {
+    //UrlFetchApp is defined, so it is for fetching
+    try {
+      console.log("Using UrlFetchApp for HTTP function.");
+      
+      var result =  UrlFetchApp.fetch(url,<any>options);
+      return JSON.parse(result.getContentText());
+
+    } catch (e) {
+      throw new Error(e);
+    }
+  }
+}
+/**
+ * @param username Litmos username following cXXXXuXXXXe pattern
+ * @return 
+ */
+
+function getUserAchievements (username: string) {
+  return getLitmosAchievements(username);
+  }
+
+async function getUser(username:string ) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
-    var result = limiter.schedule( () => UrlFetchApp.fetch(url,<any>options));
-    var user =  JSON.parse(result.getContentText());
+    
+    var user =  await fetcher(url,<any>options);
     
     return user;
   } catch (err) {
@@ -22,29 +53,34 @@ function getUser(username:string ) {
   }
 }
 
-function getLitmosAchievements(username: string) {
+async function getLitmosAchievements(username: string) {
   var url = "https://api.litmos.com/v1.svc/achievements?userid="+username+"&source=smittysapp&format=json";
-    var result =  limiter.schedule(() => UrlFetchApp.fetch(url,<any>options)) ;
-    var achievements: [{CourseId: string, others?: any}] =  JSON.parse(result.getContentText());
-    var achievementCourseIds = achievements.map(achievement => {return achievement.CourseId})
+
+    //var achievements: [{CourseId: string, others?: any}] =  fetcher(url,<any>options) ;
+    var achievements = await fetcher(url,<any>options) ;
+    var achievementCourseIds = achievements.map((achievement: { CourseId: any; }) => {return achievement.CourseId})
     return achievementCourseIds;
   }
 
-function getAllCompanyUsers(companyID: string) {
+  async function getAllCompanyUsers(companyID: string) {
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
-    var result =  limiter.schedule( () => UrlFetchApp.fetch(url,<any>options));
-    var users: [{Id: string, UserName: string, FirstName:string, LastName:string, others?: any}] =  JSON.parse(result.getContentText());
+    var users: [{Id: string, UserName: string, FirstName:string, LastName:string, others?: any}] =  await fetcher(url,<any>options);
     if (users) return users; else return null;
   }
 
-function getCourseUsers (courseID: string) {
+  async function getCourseUsers (courseID: string) {
   var url = `https://api.litmos.com/v1.svc/courses/${courseID}/users?source=smittysapp&format=json`;
    
     try {
-      var result =  limiter.schedule( () => UrlFetchApp.fetch(url,<any>options));
-      var users =  JSON.parse(result.getContentText());
+      var users =  fetcher(url,<any>options);
       return users;
     } catch (err) {
       Logger.log(err)
     } 
 }
+
+function testRunner(){
+  getLitmosAchievements("c308480811u313500657e");
+}
+
+testRunner();
