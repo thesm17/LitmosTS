@@ -2,7 +2,7 @@
 function convertLitmosDate(litmosDate) {
     var rawDate = litmosDate;
     var convert = rawDate.substr(-7, 5);
-    var conversionFactor = (convert * 60 * 600);
+    var conversionFactor = (+convert * 60 * 600);
     var middleDate = rawDate.substr(6);
     var lateDate = middleDate.split("-")[0];
     var usefulDate = new Date(0);
@@ -12,14 +12,14 @@ function convertLitmosDate(litmosDate) {
 function daysSinceCreatedDate(createdDate) {
     var today = new Date();
     var createDateLog = new Date(createdDate);
-    var timeSinceAccountCreate = (today - createDateLog);
+    var timeSinceAccountCreate = (+today - +createDateLog);
     var daysSinceAccountCreate = (timeSinceAccountCreate / (1000 * 60 * 60 * 24)).toFixed(2);
     return (daysSinceAccountCreate);
 }
 function daysSinceLastLogin(lastLogin) {
     var today = new Date();
     var lastLog = new Date(lastLogin);
-    var timeSinceLastLogin = (today - lastLog);
+    var timeSinceLastLogin = (+today - +lastLog);
     var daysSinceLastLogin = (timeSinceLastLogin / (1000 * 60 * 60 * 24)).toFixed(2);
     return (daysSinceLastLogin);
 }
@@ -36,8 +36,8 @@ function getRecentAchievements(achievements, numDays) {
     var recent = achievements.filter(function (achievement) {
         var today = new Date();
         var achievementDate = convertLitmosDate(achievement.AchievementDate);
-        var daysAgo = ((today - achievementDate) / (1000 * 60 * 60 * 24)).toFixed(2);
-        return (daysAgo < numDays);
+        var daysAgo = ((+today - +achievementDate) / (1000 * 60 * 60 * 24)).toFixed(2);
+        return (+daysAgo < numDays);
     });
     return recent;
 }

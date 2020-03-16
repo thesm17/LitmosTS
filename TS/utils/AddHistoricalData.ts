@@ -5,6 +5,8 @@ function setupHistoricalTrigger () {
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var sheet = ss.getSheetByName("Historical Training Status");
 
+
+/*
 function storeCurrentStatusForWeek() {
   var numRows = getLastRowInColumn_(sheet, 1);
   
@@ -19,8 +21,11 @@ function storeCurrentStatusForWeek() {
   })
   trainingDataRange.setValues(newTrainingStatus);
 }
+*/
 
-function calculateRowTrainingStatus_ (rowNum) {
+
+/**
+function calculateRowTrainingStatus_ (rowNum: number) {
   //get the onboarding start date value
   var onboardingStartDate = sheet.getSheetValues(rowNum,14,1,1)[0][0];
 
@@ -36,8 +41,15 @@ function calculateRowTrainingStatus_ (rowNum) {
     var historicRange = sheet.getRange(rowNum,15,1,10);
     var historicRangeValues = historicRange.getValues()[0];
 
-    //Calculate how many weeks since they started. 
-    var weekNumber = Math.abs(weeksBetween_((new Date()),onboardingStartDate))-1;
+    /**
+     * This needs some desperate work specifically today!!!!!
+     */
+    //Calculate how many millisecs since they started. 
+    var msNumber = milliSecsBetween_(new Date(), onboardingStartDate);
+    
+
+    //This need some work.
+
 
     //Check if they have matured yet
       if (weekNumber>10) {
@@ -61,25 +73,15 @@ function calculateRowTrainingStatus_ (rowNum) {
       console.log(`No onboarding start date entered for row ${rowNum}`); 
       return historicRangeValues}
  }
+*/
 
 
-function getLastColumnInRow_ (sheet, row) {
-  var col = 1;
-  while (sheet.getRange(row,col).isBlank()==false) {col++}
-  return col-1;
-}
+// function historicRunner() {
+//   var res = storeRowTrainingStatus_(296);
+// }
 
-function getLastRowInColumn_ (sheet, col) {
-  var row = 1;
-  while (sheet.getRange(row,col).isBlank()==false) {row++}
-  return row-1;
-}
-
-function historicRunner() {
-  var res = storeRowTrainingStatus_(296);
-}
-
-function weeksBetween_(d1, d2) {
-  console.log(`Exact time since starting is ${(d2 - d1) / (7 * 24 * 60 * 60 * 1000)}`)
-  return Math.ceil((d2 - d1) / (7 * 24 * 60 * 60 * 1000));
+function milliSecsBetween_(d1: Date, d2: Date) {
+  console.log(`Exact time since starting is ${(+d2 - +d1) / (7 * 24 * 60 * 60 * 1000)}`)
+  return Math.abs(+d2 - +d1);
+  //return Math.ceil((d2 - d1) / (7 * 24 * 60 * 60 * 1000));
 }

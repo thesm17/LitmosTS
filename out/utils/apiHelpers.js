@@ -21,7 +21,7 @@ function getUser(username) {
         Logger.log(err);
     }
 }
-function getLitmosAchievement(username, since) {
+function getLitmosAchievements(username, since) {
     if (since) {
         var url = "https://api.litmos.com/v1.svc/achievements?userid=" + username.UserName + "&source=smittysapp&format=json&since=" + since;
     }
@@ -99,7 +99,7 @@ function updateSharpSpringLeads(leadsArray) {
     return lead;
 }
 function getKeys_() {
-    userProperties = PropertiesService.getUserProperties();
+    var userProperties = PropertiesService.getUserProperties();
     return { accountID: userProperties.getProperty('accountID'), secretKey: userProperties.getProperty('secretKey') };
 }
 //# sourceMappingURL=apiHelpers.js.map

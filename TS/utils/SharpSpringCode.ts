@@ -15,7 +15,7 @@
 
 //user training status custom field ID is user_training_status_5e4448ef870c8
 
-function updateShSpTrainingStatus (allUsersData) {
+function updateShSpTrainingStatus (allUsersData: [any]) {
   var usersTrainingStatus = allUsersData.map(function (user) {
     return parseTrainingStatus(user);
   });
@@ -23,7 +23,7 @@ function updateShSpTrainingStatus (allUsersData) {
   return shspResponse;
 }
 
-function parseTrainingStatus(userTrainingData) {
+function parseTrainingStatus(userTrainingData: {certifiedUser: number, recentCourseCompletionDate: string, email: string}) {
   var trainingStatus;
   if (userTrainingData.certifiedUser > 0.99) {trainingStatus = "Certified User"} else
   if (userTrainingData.recentCourseCompletionDate != "") {trainingStatus = "In Progress"} else

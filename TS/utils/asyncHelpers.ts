@@ -1,5 +1,5 @@
 
-function getCompanyTrainingStatus (companyID, trainingThreshold) {
+function getCompanyTrainingStatus (companyID: string, trainingThreshold: number = 7) {
 
   Logger.log("Given companyID: "+companyID);
   if (companyID.toString().charAt(0)=='c') {companyID = parseCompanyIdFromLitmosUsername(companyID);}
@@ -17,11 +17,11 @@ function getCompanyTrainingStatus (companyID, trainingThreshold) {
   var shspSuccess = updateShSpTrainingStatus(userData);
 
   //array of certified users
-  var certifiedUsers = userData.filter(function (user) {return user.certificationStatus.certificationComplete} );
+  var certifiedUsers = userData.filter(function (user: {certificationStatus: any, others?: any}) {return user.certificationStatus.certificationComplete} );
   Logger.log("Number of certified users: "+certifiedUsers.length);
   
   //array of users who completed a course in the report threshold range
-  var achievementUsers = userData.filter(function (user) {
+  var achievementUsers = userData.filter(function (user: {recentCourseCompletionDate: any, others?: any}) {
     Logger.log(user.recentCourseCompletionDate+" :is user recent completion date");
     Logger.log(trainingThresholdDate+" :is training threshold date");
     Logger.log(user.recentCourseCompletionDate>trainingThresholdDate+" :is comparison");
@@ -29,7 +29,7 @@ function getCompanyTrainingStatus (companyID, trainingThreshold) {
   Logger.log("Number of recent achieving users: "+achievementUsers.length);
 
   //array of people who started training in the report threshold range
-  var startedInLastWeekUsers = userData.filter(function (user) {
+  var startedInLastWeekUsers = userData.filter(function (user: {daysSinceCreatedDate: any, others?: any}) {
     return (+user.daysSinceCreatedDate<=+trainingThreshold)});
   Logger.log("Number of recently created users: "+startedInLastWeekUsers.length);
 
@@ -77,16 +77,16 @@ function getCompanyTrainingStatus (companyID, trainingThreshold) {
     }}
   }
 
-function getCompanyUsers (companyID) {
+function getCompanyUsers (companyID: string) {
   var companyUserData = getAllCompanyUsers(companyID);
   return companyUserData;
 }
 
-function getUserData (username) {
+function getUserData (user: {UserName: string, others?: any}) {
 
-  var userAccountData =  getUser(username.UserName);
+  var userAccountData =  getUser(user.UserName);
 
-  var allAchievements =  getAchievements(username);
+  var allAchievements =  getLitmosAchievements(user);
 
   var recentAchievements = getRecentAchievements(allAchievements,7);
 
@@ -117,24 +117,17 @@ function getUserData (username) {
 }
 
 
-function getAchievements (username) {
-  
-  //GET user achievement data with username and since seven days ago
-  var achievements =  getLitmosAchievement(username);
-  return achievements
-}
-
-function certificationTestPassed  (userAchievements){
+function certificationTestPassed  (userAchievements: {CourseId: string, Title: string, AchievementDate: string, others? : any}[]){
   //below are the course IDs that together make up certification
   // PgqK7l17TdE1 is the MA essentials cert exam
   // ax6BzyMrCds1 is the SWS cert exam
   var certExamIds = ["PgqK7l17TdE1"];
   
   if (certExamIds.length==0){
-    throw new Error({result:"No courses have been specific for awarding certification."});
+    throw new Error("Error: No courses have been specific for awarding certification.");
   
   }
-  var examsPassed = userAchievements.filter(function (courseID) { return certExamIds.includes(courseID.CourseId)});
+  var examsPassed = userAchievements.filter(function (achievement) { return certExamIds.includes(achievement.CourseId)});
   return {
     certificationPercent: (examsPassed.length*100/certExamIds.length),
     certificationComplete: Math.floor(examsPassed.length/certExamIds.length),
@@ -144,8 +137,8 @@ function certificationTestPassed  (userAchievements){
   }
 }
 
-function getAllUserData (users) {
-  var userData = users.map(function (user) {
+function getAllUserData (users: any) {
+  var userData = users.map(function (user: any) {
     var results =  getUserData(user)
     Logger.log(results);
     return results;
@@ -156,7 +149,7 @@ function getAllUserData (users) {
 // https://tc39.github.io/ecma262/#sec-array.prototype.includes
 if (!Array.prototype.includes) {
   Object.defineProperty(Array.prototype, 'includes', {
-    value: function(searchElement, fromIndex) {
+    value: function(searchElement: any, fromIndex: number) {
 
       if (this == null) {
         throw new TypeError('"this" is null or not defined');
@@ -184,7 +177,7 @@ if (!Array.prototype.includes) {
       //  b. If k < 0, let k be 0.
       var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
 
-      function sameValueZero(x, y) {
+      function sameValueZero(x: number, y: number) {
         return x === y || (typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y));
       }
 

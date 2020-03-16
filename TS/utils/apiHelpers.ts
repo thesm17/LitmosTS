@@ -10,10 +10,10 @@ var options = {
       'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8' }
   }
 
-function getUser(username) {
+function getUser(username: string) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
-    var result = UrlFetchApp.fetch(url,options);
+    var result = UrlFetchApp.fetch(url,options as any);
     var user =  JSON.parse(result.getContentText());
     
     return user;
@@ -22,7 +22,7 @@ function getUser(username) {
   }
 }
 
-function getLitmosAchievement(username, since) {
+function getLitmosAchievements(username: {UserName: string, others?: any}, since?: number) {
   if (since) {
     var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json&since="+since;
   }
@@ -30,7 +30,7 @@ function getLitmosAchievement(username, since) {
     var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json";
   } 
   try {
-    var result =  UrlFetchApp.fetch(url,options);
+    var result =  UrlFetchApp.fetch(url,options as any);
     var achievements =  JSON.parse(result.getContentText());
     return achievements;
   } catch (err) {
@@ -38,12 +38,12 @@ function getLitmosAchievement(username, since) {
     }
   }
 
-function getAllCompanyUsers(companyID) {
+function getAllCompanyUsers(companyID: string) {
   
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
    
     try {
-      var result =  UrlFetchApp.fetch(url,options);
+      var result =  UrlFetchApp.fetch(url,options as any);
       var users =  JSON.parse(result.getContentText());
       return users;
     } catch (err) {
@@ -87,12 +87,12 @@ function getSharpSpringLead () {
     'id': id
   }
   shspOptions.payload = JSON.stringify(payload);
-  var result = UrlFetchApp.fetch(newurl,shspOptions);
+  var result = UrlFetchApp.fetch(newurl,shspOptions as any);
   var lead =  (result.getContentText());
   return lead;
 }
 
-function updateSharpSpringLeads (leadsArray) {
+function updateSharpSpringLeads (leadsArray: {emailAddress: string, others?: any}[]) {
   var method =  "updateLeads";
   var params =  {
     'objects':leadsArray 
@@ -103,7 +103,7 @@ function updateSharpSpringLeads (leadsArray) {
     'id': id
   }
   shspOptions.payload = JSON.stringify(payload);
-  var result = UrlFetchApp.fetch(newurl,shspOptions);
+  var result = UrlFetchApp.fetch(newurl,shspOptions as any);
   var lead =  (result.getContentText());
   return lead;
 }
@@ -111,6 +111,6 @@ function updateSharpSpringLeads (leadsArray) {
 
 
 function getKeys_() {
-  userProperties = PropertiesService.getUserProperties();
+  var userProperties = PropertiesService.getUserProperties();
   return {accountID: userProperties.getProperty('accountID'), secretKey: userProperties.getProperty('secretKey')}
 }

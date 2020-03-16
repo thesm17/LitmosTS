@@ -43,13 +43,13 @@ function updateArbitraryPage() {
 }
 
 function refreshUserProps() {
-  userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty('loopCounter', 0);
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('loopCounter', "0");
 }
 
-function setPage(page) {
-  userProperties = PropertiesService.getUserProperties();
-  userProperties.setProperty('page', page);
+function setPage(page: number) {
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('page', `${page}`);
 }
 
 function updateTrainingStatusOnSheet() {
@@ -95,7 +95,7 @@ function updateTrainingStatusOnSheet() {
 
     // increment the properties service counter for the loop
     loopCounter +=1;
-    userProperties.setProperty('loopCounter', loopCounter);
+    userProperties.setProperty('loopCounter', `${loopCounter}`);
     
     // see what the counter value is at the end of the loop
     Logger.log("Loop counter: "+loopCounter);
@@ -108,12 +108,12 @@ function updateTrainingStatusOnSheet() {
 
 }
 
-function getCertifiedUsers_ (ts) {
+function getCertifiedUsers_ (ts: {certifiedUsers:any, others?: any}) {
   //give a list of certified learners
   var certifiedUsers;
   Logger.log("Certified users: "+JSON.stringify(ts.certifiedUsers))
   if ((typeof ts.certifiedUsers !=='undefined')&&ts.certifiedUsers.length>0) {
-    certifiedUsers = ts.certifiedUsers.map(function (user){
+    certifiedUsers = ts.certifiedUsers.map(function (user: {name: string, others?: any}){
       return user.name
     })
     certifiedUsers = certifiedUsers.join(", ");
@@ -121,11 +121,11 @@ function getCertifiedUsers_ (ts) {
   return certifiedUsers;
 }
 
-function getRecentUsers_ (ts) {
+function getRecentUsers_ (ts: {completedCoursesThisWeek:any, others?: any}) {
   //give a list of recent learners
   var recentLearners;
   if ((typeof ts.completedCoursesThisWeek !== 'undefined')&&ts.completedCoursesThisWeek.length>0) {
-    recentLearners = ts.completedCoursesThisWeek.map(function (user){
+    recentLearners = ts.completedCoursesThisWeek.map(function (user: {name: string, others?: any}){
       return user.name      
     })
     recentLearners = recentLearners.join(", ");
@@ -134,7 +134,7 @@ function getRecentUsers_ (ts) {
   return recentLearners;
 }
 
-function updateSheetWithNewTrainingInfo (row, rangeValues, sheet, trainingStatusColumn) {
+function updateSheetWithNewTrainingInfo (row:number, rangeValues: any, sheet: any, trainingStatusColumn: number=4) {
 
   //check if the training status column param was given
   //if not, prep data to be stuck into column 5 (or any column based on the sheet's needs)
@@ -149,7 +149,7 @@ function updateSheetWithNewTrainingInfo (row, rangeValues, sheet, trainingStatus
   return formattedResults;
 }
 
-function formatRange(trainingStatus) {
+function formatRange(trainingStatus: any) {
   /*need to set:
   *E-row to training status
   *F-row to the current time
@@ -198,22 +198,16 @@ function updateCustomRow() {
   var sheet = ss.getSheets()[sheetNum];
   var sheetName = sheet.getName();
   var companyID = sheet.getRange(row,1).getValue();
-  var rTC = "7";
-  var trainingData = getCompanyTrainingStatus(companyID, rTC);
+  var reportingThreshold = 7;
+  var trainingData = getCompanyTrainingStatus(companyID, reportingThreshold);
   var formattedRange = formatRange(trainingData);
   var sheetUpdateStatus = updateSheetWithNewTrainingInfo(row, formattedRange, sheet);
   Logger.log("\nSheet successfully updated with the data: "+sheetUpdateStatus.getValues());
 }
 
 function learnUserProperties() {
- userProperties = PropertiesService.getUserProperties();
+ var userProperties = PropertiesService.getUserProperties();
  var props =  userProperties.getProperties()
  var name = sheet.getSheetName();
   Logger.log("props gotten!");
-}
-
-function getLastRowInColumn_ (sheet,col) {
-  var row = 1;
-  while (sheet.getRange(row,col).isBlank()==false) {row++}
-  return row-1;
 }

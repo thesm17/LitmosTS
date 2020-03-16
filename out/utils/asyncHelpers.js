@@ -1,5 +1,6 @@
 "use strict";
 function getCompanyTrainingStatus(companyID, trainingThreshold) {
+    if (trainingThreshold === void 0) { trainingThreshold = 7; }
     Logger.log("Given companyID: " + companyID);
     if (companyID.toString().charAt(0) == 'c') {
         companyID = parseCompanyIdFromLitmosUsername(companyID);
@@ -78,9 +79,9 @@ function getCompanyUsers(companyID) {
     var companyUserData = getAllCompanyUsers(companyID);
     return companyUserData;
 }
-function getUserData(username) {
-    var userAccountData = getUser(username.UserName);
-    var allAchievements = getAchievements(username);
+function getUserData(user) {
+    var userAccountData = getUser(user.UserName);
+    var allAchievements = getLitmosAchievements(user);
     var recentAchievements = getRecentAchievements(allAchievements, 7);
     var certified = certificationTestPassed(allAchievements);
     var recentCourseTitle, recentCourseCompletionDate;
@@ -104,20 +105,15 @@ function getUserData(username) {
         daysSinceCreatedDate: daysSinceCreatedDate(userAccountData.CreatedDate)
     };
 }
-function getAchievements(username) {
-    //GET user achievement data with username and since seven days ago
-    var achievements = getLitmosAchievement(username);
-    return achievements;
-}
 function certificationTestPassed(userAchievements) {
     //below are the course IDs that together make up certification
     // PgqK7l17TdE1 is the MA essentials cert exam
     // ax6BzyMrCds1 is the SWS cert exam
     var certExamIds = ["PgqK7l17TdE1"];
     if (certExamIds.length == 0) {
-        throw new Error({ result: "No courses have been specific for awarding certification." });
+        throw new Error("Error: No courses have been specific for awarding certification.");
     }
-    var examsPassed = userAchievements.filter(function (courseID) { return certExamIds.includes(courseID.CourseId); });
+    var examsPassed = userAchievements.filter(function (achievement) { return certExamIds.includes(achievement.CourseId); });
     return {
         certificationPercent: (examsPassed.length * 100 / certExamIds.length),
         certificationComplete: Math.floor(examsPassed.length / certExamIds.length),

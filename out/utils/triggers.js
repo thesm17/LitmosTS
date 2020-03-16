@@ -37,12 +37,12 @@ function updateArbitraryPage() {
     // ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 function refreshUserProps() {
-    userProperties = PropertiesService.getUserProperties();
-    userProperties.setProperty('loopCounter', 0);
+    var userProperties = PropertiesService.getUserProperties();
+    userProperties.setProperty('loopCounter', "0");
 }
 function setPage(page) {
-    userProperties = PropertiesService.getUserProperties();
-    userProperties.setProperty('page', page);
+    var userProperties = PropertiesService.getUserProperties();
+    userProperties.setProperty('page', "" + page);
 }
 function updateTrainingStatusOnSheet() {
     var userProperties = PropertiesService.getUserProperties();
@@ -77,7 +77,7 @@ function updateTrainingStatusOnSheet() {
         Logger.log("Sheet successfully updated with the data: " + sheetUpdateStatus.getValues());
         // increment the properties service counter for the loop
         loopCounter += 1;
-        userProperties.setProperty('loopCounter', loopCounter);
+        userProperties.setProperty('loopCounter', "" + loopCounter);
         // see what the counter value is at the end of the loop
         Logger.log("Loop counter: " + loopCounter);
     }
@@ -115,6 +115,7 @@ function getRecentUsers_(ts) {
     return recentLearners;
 }
 function updateSheetWithNewTrainingInfo(row, rangeValues, sheet, trainingStatusColumn) {
+    if (trainingStatusColumn === void 0) { trainingStatusColumn = 4; }
     //check if the training status column param was given
     //if not, prep data to be stuck into column 5 (or any column based on the sheet's needs)
     if (!trainingStatusColumn) {
@@ -172,23 +173,16 @@ function updateCustomRow() {
     var sheet = ss.getSheets()[sheetNum];
     var sheetName = sheet.getName();
     var companyID = sheet.getRange(row, 1).getValue();
-    var rTC = "7";
-    var trainingData = getCompanyTrainingStatus(companyID, rTC);
+    var reportingThreshold = 7;
+    var trainingData = getCompanyTrainingStatus(companyID, reportingThreshold);
     var formattedRange = formatRange(trainingData);
     var sheetUpdateStatus = updateSheetWithNewTrainingInfo(row, formattedRange, sheet);
     Logger.log("\nSheet successfully updated with the data: " + sheetUpdateStatus.getValues());
 }
 function learnUserProperties() {
-    userProperties = PropertiesService.getUserProperties();
+    var userProperties = PropertiesService.getUserProperties();
     var props = userProperties.getProperties();
     var name = sheet.getSheetName();
     Logger.log("props gotten!");
-}
-function getLastRowInColumn_(sheet, col) {
-    var row = 1;
-    while (sheet.getRange(row, col).isBlank() == false) {
-        row++;
-    }
-    return row - 1;
 }
 //# sourceMappingURL=triggers.js.map
