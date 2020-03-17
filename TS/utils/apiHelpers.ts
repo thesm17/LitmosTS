@@ -67,6 +67,7 @@ function getAllCompanyUsers(companyID: string) {
         UserName: string,
         FirstName: string,
         LastName: string,
+        FullName: string,
         Email: string,
         others?: any
         

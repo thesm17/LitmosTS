@@ -10,12 +10,14 @@
   *   {
   *    Title: string,
   *    CourseID: string,
-  *    CompletionDate: (JS date, not weird Litmos Date) Date
+  *    CompletionDate: (JS date, not weird Litmos Date) Date,
+  *    CompliantTillDate? : string
   *    },
   *    {
   *    CourseTitle: string,
   *    CourseID: string,
-  *    CompletionDate: (JS date, not weird Litmos Date) Date
+  *    CompletionDate: (JS date, not weird Litmos Date) string
+  *    CompliantTillDate? : string
   *   }
   *    ...
  *   ]
@@ -32,12 +34,9 @@
 //!not real
 var companyID = "308468531";
 var allCompanyUsers = getAllCompanyUsers(companyID);
-var allUsersAchievements = allCompanyUsers.map(function (user) {
-    var coursesCompleted_raw = getLitmosAchievements(user);
-    var coursesCompleted_dateCorrected = fixLitmosDates(coursesCompleted_raw);
-});
+var allUserTrainingHistory = allCompanyUsers.map(function (user) { return getUserTrainingStatus(user); });
 /**
- * This function consumes the complete achievements[] and returns each {} with converted dates
+ * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
  * @param achievements the complete achievements array recieved from getLitmosAchievements()
  * @returns the same set of achievements but with standardized dates
  */
@@ -47,5 +46,20 @@ function fixLitmosDates(achievements) {
         return achievement;
     });
     return fixedAchievements;
+}
+/**
+ * Given a Litmos user object, return it formatted for SharpSpring use.
+ * @param user Litmos user gotten by getUser() or getAllCompanyUsers()
+ * @returns the directed userTrainingStatus{}
+ */
+function getUserTrainingStatus(user) {
+    var coursesCompleted_raw = getLitmosAchievements(user);
+    var coursesCompleted_dateCorrected = fixLitmosDates(coursesCompleted_raw);
+    return {
+        FullName: user.FullName,
+        Email: user.Email,
+        UserName: user.UserName,
+        CoursesCompleted: coursesCompleted_dateCorrected
+    };
 }
 //# sourceMappingURL=HistoricTrainingData2.js.map
