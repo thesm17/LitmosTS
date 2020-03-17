@@ -10,6 +10,11 @@ var options = {
         'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8'
     }
 };
+/**
+ * This function is unique from getAllCompanyUsers because it is the only one that can return LastLogin and CreatedDate
+ * @param username Litmos username formatted as cXXXXuXXXXe
+ * @return user object including LastLogin and CreatedDate
+ */
 function getUser(username) {
     var url = baseUrl + "/users/" + username + "?source=smittysapp&format=json";
     try {
@@ -18,15 +23,15 @@ function getUser(username) {
         return user;
     }
     catch (err) {
-        Logger.log(err);
+        throw new Error("There was an erro getting user " + username + " from Litmos.");
     }
 }
-function getLitmosAchievements(username, since) {
+function getLitmosAchievements(user, since) {
     if (since) {
-        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + username.UserName + "&source=smittysapp&format=json&since=" + since;
+        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json&since=" + since;
     }
     else {
-        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + username.UserName + "&source=smittysapp&format=json";
+        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json";
     }
     try {
         var result = UrlFetchApp.fetch(url, options);
@@ -34,7 +39,7 @@ function getLitmosAchievements(username, since) {
         return achievements;
     }
     catch (err) {
-        Logger.log(err);
+        throw new Error("Error getting achievements for " + user.UserName + ". Error given: \n" + err);
     }
 }
 function getAllCompanyUsers(companyID) {
@@ -45,12 +50,10 @@ function getAllCompanyUsers(companyID) {
         return users;
     }
     catch (err) {
-        Logger.log(err);
+        console.log(err);
+        throw new Error("Error while trying to get company users of " + companyID);
     }
 }
-/**
- * The following functions: (getSharpSpringLead, updateSharpSpringLeads)
- */
 /**
 * accountID and secretKey will be stored in UserProperties and retrieved here
 */
@@ -66,6 +69,9 @@ var shspOptions = {
     'contentType': 'application/json',
     'payload': {}
 };
+/**
+ * !borked - doesn't accept any args
+ */
 function getSharpSpringLead() {
     var method = "getLeads";
     var params = {

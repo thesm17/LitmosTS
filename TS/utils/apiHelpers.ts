@@ -9,32 +9,51 @@ var options = {
     'headers': {
       'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8' }
   }
-
+/**
+ * This function is unique from getAllCompanyUsers because it is the only one that can return LastLogin and CreatedDate
+ * @param username Litmos username formatted as cXXXXuXXXXe
+ * @return user object including LastLogin and CreatedDate
+ */
 function getUser(username: string) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
     var result = UrlFetchApp.fetch(url,options as any);
-    var user =  JSON.parse(result.getContentText());
+    var user: {
+      UserName: string, 
+      FirstName: string,
+      LastName: string,
+      FullName: string,
+      Email: string,
+      LastLogin: string,
+      CreatedDate: string,
+      others?: string
+    } =  JSON.parse(result.getContentText());
     
     return user;
   } catch (err) {
-    Logger.log(err); 
+      throw new Error(`There was an erro getting user ${username} from Litmos.`);    
   }
 }
 
-function getLitmosAchievements(username: {UserName: string, others?: any}, since?: number) {
+function getLitmosAchievements(user: {UserName: string, others?: any}, since?: number) {
   if (since) {
-    var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json&since="+since;
+    var url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json&since="+since;
   }
   else {
-    var url = "https://api.litmos.com/v1.svc/achievements?userid="+username.UserName+"&source=smittysapp&format=json";
+    var url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json";
   } 
   try {
     var result =  UrlFetchApp.fetch(url,options as any);
-    var achievements =  JSON.parse(result.getContentText());
+    var achievements: {
+        Title: string,
+        AchievementDate: string,
+        CourseId: string,
+        CompliantTillDate?: string|null
+      }[] =  JSON.parse(result.getContentText());
+
     return achievements;
   } catch (err) {
-    Logger.log(err);
+    throw new Error(`Error getting achievements for ${user.UserName}. Error given: \n${err}`);
     }
   }
 
@@ -44,17 +63,20 @@ function getAllCompanyUsers(companyID: string) {
    
     try {
       var result =  UrlFetchApp.fetch(url,options as any);
-      var users =  JSON.parse(result.getContentText());
+      var users: {
+        UserName: string,
+        FirstName: string,
+        LastName: string,
+        Email: string,
+        others?: any
+        
+      }[] =  JSON.parse(result.getContentText());
       return users;
     } catch (err) {
-      Logger.log(err)
+      console.log(err)
+      throw new Error(`Error while trying to get company users of ${companyID}`)
     } 
   }
-
-/**
- * The following functions: (getSharpSpringLead, updateSharpSpringLeads)
- */
-
 
   /**
  * accountID and secretKey will be stored in UserProperties and retrieved here
@@ -74,6 +96,9 @@ var shspOptions = {
     'payload': {}    
   }
 
+/**
+ * !borked - doesn't accept any args
+ */  
 function getSharpSpringLead () {
   var method =  "getLeads";
   var params =  {

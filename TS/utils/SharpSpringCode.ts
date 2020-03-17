@@ -15,7 +15,7 @@
 
 //user training status custom field ID is user_training_status_5e4448ef870c8
 
-function updateShSpTrainingStatus (allUsersData: [any]) {
+function updateShSpTrainingStatus (allUsersData: any[]) {
   var usersTrainingStatus = allUsersData.map(function (user) {
     return parseTrainingStatus(user);
   });

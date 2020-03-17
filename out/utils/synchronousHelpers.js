@@ -7,7 +7,7 @@ function convertLitmosDate(litmosDate) {
     var lateDate = middleDate.split("-")[0];
     var usefulDate = new Date(0);
     usefulDate.setMilliseconds(+lateDate + +conversionFactor);
-    return usefulDate;
+    return usefulDate.toTimeString();
 }
 function daysSinceCreatedDate(createdDate) {
     var today = new Date();
@@ -33,6 +33,7 @@ function convertThresholdToDate(numdays) {
     return d;
 }
 function getRecentAchievements(achievements, numDays) {
+    if (numDays === void 0) { numDays = 7; }
     var recent = achievements.filter(function (achievement) {
         var today = new Date();
         var achievementDate = convertLitmosDate(achievement.AchievementDate);

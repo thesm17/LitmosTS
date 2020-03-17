@@ -9,59 +9,62 @@ function getCompanyTrainingStatus(companyID, trainingThreshold) {
     Logger.log("Training Threshold: " + trainingThreshold);
     var trainingThresholdDate = convertThresholdToDate(trainingThreshold);
     Logger.log("Training threshold date: " + trainingThresholdDate);
-    var users = getCompanyUsers(companyID);
+    var users = getAllCompanyUsers(companyID);
     Logger.log("All users gotten.\n");
-    var userData = getAllUserData(users);
-    Logger.log("All data for all users gotten.\n");
-    //pass individual training data to SharpSpring lead records
-    var shspSuccess = updateShSpTrainingStatus(userData);
-    //array of certified users
-    var certifiedUsers = userData.filter(function (user) { return user.certificationStatus.certificationComplete; });
-    Logger.log("Number of certified users: " + certifiedUsers.length);
-    //array of users who completed a course in the report threshold range
-    var achievementUsers = userData.filter(function (user) {
-        Logger.log(user.recentCourseCompletionDate + " :is user recent completion date");
-        Logger.log(trainingThresholdDate + " :is training threshold date");
-        Logger.log(user.recentCourseCompletionDate > trainingThresholdDate + " :is comparison");
-        return (user.recentCourseCompletionDate > trainingThresholdDate);
-    });
-    Logger.log("Number of recent achieving users: " + achievementUsers.length);
-    //array of people who started training in the report threshold range
-    var startedInLastWeekUsers = userData.filter(function (user) {
-        return (+user.daysSinceCreatedDate <= +trainingThreshold);
-    });
-    Logger.log("Number of recently created users: " + startedInLastWeekUsers.length);
-    //return certified if the certified array is nonempty
-    if (certifiedUsers.length > 0) {
-        return {
-            totalLearners: users.length,
-            trainingStatus: certifiedUsers.length + " certified user/users",
-            certifiedUsers: certifiedUsers,
-            completedCoursesThisWeek: achievementUsers,
-            startedThisWeek: startedInLastWeekUsers
-        };
-    }
-    //return in progress if there have been certifications this week or new users created
-    else if (achievementUsers.length || startedInLastWeekUsers.length) {
-        Logger.log("Training in progress\n");
-        return {
-            totalLearners: users.length,
-            trainingStatus: "In Progress",
-            certifiedUsers: {},
-            completedCoursesThisWeek: achievementUsers,
-            startedThisWeek: startedInLastWeekUsers
-        };
-    }
-    //return stalled if no progress this week
-    else if (Array.isArray(users) && users.length) {
-        Logger.log("Training stalled.\n");
-        return {
-            totalLearners: users.length,
-            trainingStatus: "Stalled",
-            certifiedUsers: {},
-            completedCoursesThisWeek: {},
-            startedThisWeek: {}
-        };
+    //Proceed if the company has some number of learners in Litmos
+    if (users) {
+        var userData = getAllUserData(users);
+        Logger.log("All data for all users gotten.\n");
+        //pass individual training data to SharpSpring lead records
+        var shspSuccess = updateShSpTrainingStatus(userData);
+        //array of certified users
+        var certifiedUsers = userData.filter(function (user) { return user.certificationStatus.certificationComplete; });
+        Logger.log("Number of certified users: " + certifiedUsers.length);
+        //array of users who completed a course in the report threshold range
+        var achievementUsers = userData.filter(function (user) {
+            Logger.log(user.recentCourseCompletionDate + " :is user recent completion date");
+            Logger.log(trainingThresholdDate + " :is training threshold date");
+            Logger.log(user.recentCourseCompletionDate > trainingThresholdDate + " :is comparison");
+            return (user.recentCourseCompletionDate > trainingThresholdDate);
+        });
+        Logger.log("Number of recent achieving users: " + achievementUsers.length);
+        //array of people who started training in the report threshold range
+        var startedInLastWeekUsers = userData.filter(function (user) {
+            return (+user.daysSinceCreatedDate <= +trainingThreshold);
+        });
+        Logger.log("Number of recently created users: " + startedInLastWeekUsers.length);
+        //return certified if the certified array is nonempty
+        if (certifiedUsers.length > 0) {
+            return {
+                totalLearners: users.length,
+                trainingStatus: certifiedUsers.length + " certified user/users",
+                certifiedUsers: certifiedUsers,
+                completedCoursesThisWeek: achievementUsers,
+                startedThisWeek: startedInLastWeekUsers
+            };
+        }
+        //return in progress if there have been certifications this week or new users created
+        else if (achievementUsers.length || startedInLastWeekUsers.length) {
+            Logger.log("Training in progress\n");
+            return {
+                totalLearners: users.length,
+                trainingStatus: "In Progress",
+                certifiedUsers: {},
+                completedCoursesThisWeek: achievementUsers,
+                startedThisWeek: startedInLastWeekUsers
+            };
+        }
+        //return stalled if no progress this week
+        else if (Array.isArray(users) && users.length) {
+            Logger.log("Training stalled.\n");
+            return {
+                totalLearners: users.length,
+                trainingStatus: "Stalled",
+                certifiedUsers: {},
+                completedCoursesThisWeek: {},
+                startedThisWeek: {}
+            };
+        }
     }
     //return no logins if there are no users
     else {
@@ -75,24 +78,28 @@ function getCompanyTrainingStatus(companyID, trainingThreshold) {
         };
     }
 }
-function getCompanyUsers(companyID) {
-    var companyUserData = getAllCompanyUsers(companyID);
-    return companyUserData;
-}
 function getUserData(user) {
-    var userAccountData = getUser(user.UserName);
-    var allAchievements = getLitmosAchievements(user);
-    var recentAchievements = getRecentAchievements(allAchievements, 7);
-    var certified = certificationTestPassed(allAchievements);
     var recentCourseTitle, recentCourseCompletionDate;
+    //Get user account data from Litmos
+    var userAccountData = getUser(user.UserName);
+    //Get all user achievements
+    var allAchievements = getLitmosAchievements(user);
+    //Check if the user is certified
+    var certified = checkCertificationStatus(allAchievements);
+    //Check whether any of the completions are recent
+    var recentCourseTitle, recentCourseCompletionDate;
+    var recentAchievements = getRecentAchievements(allAchievements, 7);
+    //If there is a recent achievement, store the title and achievement date
     if (recentAchievements[0]) {
         recentCourseTitle = recentAchievements[0].Title;
         recentCourseCompletionDate = convertLitmosDate(recentAchievements[0].AchievementDate);
     }
     else {
+        //Otherwise return no new courses  
         recentCourseTitle = "No recent courses completed";
         recentCourseCompletionDate = "";
     }
+    //Return given user information
     return {
         name: userAccountData.FullName,
         email: userAccountData.Email,
@@ -105,7 +112,7 @@ function getUserData(user) {
         daysSinceCreatedDate: daysSinceCreatedDate(userAccountData.CreatedDate)
     };
 }
-function certificationTestPassed(userAchievements) {
+function checkCertificationStatus(userAchievements) {
     //below are the course IDs that together make up certification
     // PgqK7l17TdE1 is the MA essentials cert exam
     // ax6BzyMrCds1 is the SWS cert exam

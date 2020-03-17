@@ -3,11 +3,11 @@
  * 
  * userTrainingHistory: {
  *  FullName: string,
- *  EmailAddress: string,
- *  LitmosUsername: string,
+ *  Email: string,
+ *  UserName: string,
  *  CoursesCompleted: [
   *   {
-  *    CourseTitle: string,
+  *    Title: string,
   *    CourseID: string,
   *    CompletionDate: (JS date, not weird Litmos Date) Date  
   *    },
@@ -19,6 +19,36 @@
   *    ...
  *   ]   
  *  }
- * 
- * 
+ *  
  */
+
+
+ // Initial @param is SharpSpring companyID (3089234, eg)
+ // 1. Get all litmos users with this companyID
+ // 2. Consume (each) the first user and get all achievements
+ // 3. Consume each achievement and return the above object
+    // Adjust the date, changing it into a standard Date() 
+ // 4. Reformat all data
+
+ //getCompanyID from a spreadsheet or something
+ //!not real
+
+var companyID= "308468531";
+var allCompanyUsers = getAllCompanyUsers(companyID);
+var allUsersAchievements = allCompanyUsers.map(function (user) {
+  let coursesCompleted_raw = getLitmosAchievements(user);
+  let coursesCompleted_dateCorrected = fixLitmosDates(coursesCompleted_raw)
+})
+
+/**
+ * This function consumes the complete achievements[] and returns each {} with converted dates
+ * @param achievements the complete achievements array recieved from getLitmosAchievements()
+ * @returns the same set of achievements but with standardized dates
+ */
+function fixLitmosDates(achievements: { Title: string; AchievementDate: string; CourseId: string; CompliantTillDate?: string | null | undefined; }[]){
+  let fixedAchievements = achievements.map(function (achievement){
+    achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate);
+    return achievement;
+  })
+  return fixedAchievements;
+}
