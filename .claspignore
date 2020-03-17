@@ -2,6 +2,5 @@
 out/TS/**
 TS/**
 JS/**
-out/BottleneckTest.js
 out/main.js
-out/runners.js
+out/utils/AddHistoricalData.js
