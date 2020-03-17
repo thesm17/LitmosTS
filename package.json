@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Upgrading ShSp-Litmos connection to TypeScript",
   "main": "index.js",
+  "module": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,8 +22,11 @@
     "@types/node": "^13.9.0",
     "bottleneck": "^2.19.5",
     "clasp": "^1.0.0",
+    "esm": "^3.2.25",
     "fetch": "^1.1.0",
     "node-fetch": "^2.6.0",
     "typescript": "^3.7.5"
-  }
+  },
+  "devDependencies": {},
+  "keywords": []
 }

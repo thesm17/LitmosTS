@@ -35,27 +35,13 @@
 
  
 /**
- * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
- * @param achievements the complete achievements array recieved from getLitmosAchievements()
- * @returns the same set of achievements but with standardized dates
- */
-function fixLitmosDates(achievements: { Title: string; AchievementDate: string; CourseId: string; CompliantTillDate?: string | null | undefined; }[]){
-  let fixedAchievements = achievements.map(function (achievement){
-    achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate);
-    return achievement;
-  })
-  return fixedAchievements;
-}
-
-
-/**
  * Given a Litmos user object, return it formatted for SharpSpring use.
  * @param user Litmos user gotten by getUser() or getAllCompanyUsers()
  * @returns the directed userTrainingStatus{}
  */
-function getUserTrainingStatus(user: { UserName: string; FirstName: string; FullName: string, LastName: string; Email: string; others?: any; }) {
+function getUserTrainingStatus_(user: { UserName: string; FirstName: string; FullName: string, LastName: string; Email: string; others?: any; }) {
   let coursesCompleted_raw = getLitmosAchievements(user);
-  let coursesCompleted_dateCorrected = fixLitmosDates(coursesCompleted_raw)
+  let coursesCompleted_dateCorrected = fixLitmosDates_(coursesCompleted_raw)
   return {
     FirstName: user.FirstName,
     LastName: user.LastName,
@@ -65,13 +51,30 @@ function getUserTrainingStatus(user: { UserName: string; FirstName: string; Full
   }
 }
 
-function HistoricTrainingRunner_clasp() {
+/**
+ * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
+ * @param achievements the complete achievements array recieved from getLitmosAchievements()
+ * @returns the same set of achievements but with standardized dates
+ */
+function fixLitmosDates_(achievements: { Title: string; AchievementDate: string; CourseId: string; CompliantTillDate?: string | null | undefined; }[]){
+  let fixedAchievements = achievements.map(function (achievement){
+    achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate);
+    return achievement;
+  })
+  return fixedAchievements;
+}
+
+/**
+ * This runner is for testing in the Scripts editor
+ * @param companyID 
+ */
+function HistoricTrainingRunner_clasp(companyID = "308480811") {
   //getCompanyID from a spreadsheet or something
   //!FOR TESTING
-  var companyID= "308480811";
 
   var allCompanyUsers = getAllCompanyUsers(companyID);
   
-  var allUserTrainingHistory = allCompanyUsers.map(user => getUserTrainingStatus(user))
+  var allUserTrainingHistory = allCompanyUsers.map(user => getUserTrainingStatus_(user))
   console.log("All done!");
 }
+

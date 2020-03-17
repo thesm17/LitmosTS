@@ -8,14 +8,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Launch Runner",
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/out/main.js",
+      "program": "${workspaceFolder}/TS/utils/runners.ts",
       "outFiles": [
         "${workspaceFolder}/**/*.js"
-      ]
+      ],
     },
     {
       "type": "node",

@@ -10,6 +10,13 @@ function convertLitmosDate (litmosDate: string) {
 return usefulDate.toTimeString();
 }
 
+function millsSince(time1: string|Date, time2: string|Date = new Date()){
+  var dt1 = new Date(time1);
+  var dt2 = new Date(time2);
+  var timeBetween = Math.abs(+dt1-+dt2)
+  return timeBetween;
+}
+
 function daysSinceCreatedDate (createdDate: string) {
   var today = new Date();
   var createDateLog = new Date(createdDate);

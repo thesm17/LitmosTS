@@ -6,4 +6,3 @@ out/main.js
 out/utils/AddHistoricalData.js
 out/asyncHelpers.js
 out/manageCerts.js
-out/runners.js
