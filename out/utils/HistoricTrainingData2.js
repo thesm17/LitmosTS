@@ -3,7 +3,8 @@
  * Given a companyID, grab any single user (the first for the MVP), and format the users's training record as:
  *
  * userTrainingHistory: {
- *  FullName: string,
+ *  FirstName: string,
+ *  LastName: string
  *  Email: string,
  *  UserName: string,
  *  CoursesCompleted: [
@@ -30,11 +31,6 @@
 // 3. Consume each achievement and return the above object
 // Adjust the date, changing it into a standard Date() 
 // 4. Reformat all data
-//getCompanyID from a spreadsheet or something
-//!not real
-var companyID = "308468531";
-var allCompanyUsers = getAllCompanyUsers(companyID);
-var allUserTrainingHistory = allCompanyUsers.map(function (user) { return getUserTrainingStatus(user); });
 /**
  * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
  * @param achievements the complete achievements array recieved from getLitmosAchievements()
@@ -56,10 +52,19 @@ function getUserTrainingStatus(user) {
     var coursesCompleted_raw = getLitmosAchievements(user);
     var coursesCompleted_dateCorrected = fixLitmosDates(coursesCompleted_raw);
     return {
-        FullName: user.FullName,
+        FirstName: user.FirstName,
+        LastName: user.LastName,
         Email: user.Email,
         UserName: user.UserName,
         CoursesCompleted: coursesCompleted_dateCorrected
     };
+}
+function HistoricTrainingRunner_clasp() {
+    //getCompanyID from a spreadsheet or something
+    //!FOR TESTING
+    var companyID = "308480811";
+    var allCompanyUsers = getAllCompanyUsers(companyID);
+    var allUserTrainingHistory = allCompanyUsers.map(function (user) { return getUserTrainingStatus(user); });
+    console.log("All done!");
 }
 //# sourceMappingURL=HistoricTrainingData2.js.map
