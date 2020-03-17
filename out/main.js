@@ -582,7 +582,7 @@ function getCourseUsers(courseID) {
             catch (err) {
                 Logger.log(err);
             }
-            return [2 /*return*/];
+            return [2 /*return*/]; 
         });
     });
 }
