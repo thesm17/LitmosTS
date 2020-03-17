@@ -11,10 +11,13 @@ function convertLitmosDate(litmosDate) {
 }
 function millsSince(time1, time2) {
     if (time2 === void 0) { time2 = new Date(); }
-    var dt1 = new Date(time1);
-    var dt2 = new Date(time2);
-    var timeBetween = Math.abs(+dt1 - +dt2);
+    var dt1 = new Date(time1).getTime();
+    var dt2 = new Date(time2).getTime();
+    var timeBetween = Math.abs(dt1 - dt2);
     return timeBetween;
+}
+function daysSince(milliseconds) {
+    return milliseconds / (1000 * 60 * 60 * 24);
 }
 function daysSinceCreatedDate(createdDate) {
     var today = new Date();

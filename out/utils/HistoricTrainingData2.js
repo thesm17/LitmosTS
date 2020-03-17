@@ -39,13 +39,14 @@
 function getUserTrainingStatus_(user) {
     var coursesCompleted_raw = getLitmosAchievements(user);
     var coursesCompleted_dateCorrected = fixLitmosDates_(coursesCompleted_raw);
-    return {
+    var userRecord = {
         FirstName: user.FirstName,
         LastName: user.LastName,
         Email: user.Email,
         UserName: user.UserName,
         CoursesCompleted: coursesCompleted_dateCorrected
     };
+    return userRecord;
 }
 /**
  * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
@@ -60,6 +61,20 @@ function fixLitmosDates_(achievements) {
     return fixedAchievements;
 }
 /**
+ * Pass in the whole company training record [] and ingest each user then each achievement therein to adjust the AchievementDate in terms of the activationDate
+ * @param {User[]} allUserTrainingHistory  comes from getAllUsersTrainingStatus()
+ * @param {string|date} activationDate
+ */
+function adjustAchievementDatesByActivationDate_(allUserTrainingHistory, activationDate) {
+    //map through each user
+    allUserTrainingHistory.forEach(function (user) {
+        user.CoursesCompleted.forEach(function (achievement) {
+            achievement.DaysIntoOnboardingWhenCompleted = daysBetween_(achievement.AchievementDate, activationDate);
+        });
+    });
+    return allUserTrainingHistory;
+}
+/**
  * This runner is for testing in the Scripts editor
  * @param companyID
  */
@@ -68,7 +83,48 @@ function HistoricTrainingRunner_clasp(companyID) {
     //!FOR TESTING
     if (companyID === void 0) { companyID = "308480811"; }
     var allCompanyUsers = getAllCompanyUsers(companyID);
-    var allUserTrainingHistory = allCompanyUsers.map(function (user) { return getUserTrainingStatus_(user); });
-    console.log("All done!");
+    var allUserTrainingStatus = getAllUsersTrainingStatus_(allCompanyUsers);
+    var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, "2020-03-03");
+    console.log(trainingHistory);
+}
+/**
+ * Loops through each company user and returns all their achievements
+ * @param allCompanyUsers from getAllCompanyUsers()
+ */
+function getAllUsersTrainingStatus_(allCompanyUsers) {
+    return allCompanyUsers.map(function (user) { return getUserTrainingStatus_(user); });
+}
+/**
+ * This function takes two times and finds the number of days between them, as a decimal
+ * @param t1
+ * @param t2
+ */
+function daysBetween_(t1, t2) {
+    return daysSince(millsSince(t1, t2));
+}
+function timeTestingRunner() {
+    //returns 1218559000
+    var m1 = millsSince("3/16/2020 22:29:19", "2020-03-03");
+    //returns 14.10369212962963
+    var d1 = daysSince(m1);
+    //returns 0
+    var t2 = millsSince(new Date());
+    // This one is dicey because months are actually zero indexed, so this is actually may 24.
+    var t3 = millsSince(new Date, new Date(1990, 4, 24));
+    return [d1, t2, t3];
+}
+function buildHistoricalAchievementArray_(trainingHistory) {
+    var achievementsArray = [[]];
+    trainingHistory.forEach(function (user) {
+        user.CoursesCompleted.forEach(function (achievement) {
+            //Throw the UserName into the achievement's array
+            achievement.UserWhoAchieved = user.UserName;
+            //Decide which day's cell to fill
+            var day = Math.floor(achievement.DaysIntoOnboardingWhenCompleted || 0);
+            //Add the achievement into the array
+            achievementsArray[day].push(achievement);
+        });
+    });
+    return achievementsArray;
 }
 //# sourceMappingURL=HistoricTrainingData2.js.map

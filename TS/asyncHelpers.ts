@@ -67,9 +67,3 @@ async function getUser2(username:string ) {
     } 
 }
 
-function testRunner(){
-  getLitmosAchievements("c308480811u313500657e");
-}
-parseCompanyIdFromLitmosUsername("c308480811u313500657e");
-testRunner();
-

@@ -142,9 +142,4 @@ function getCourseUsers(courseID) {
         });
     });
 }
-function testRunner() {
-    getLitmosAchievements("c308480811u313500657e");
-}
-parseCompanyIdFromLitmosUsername("c308480811u313500657e");
-testRunner();
 //# sourceMappingURL=asyncHelpers.js.map

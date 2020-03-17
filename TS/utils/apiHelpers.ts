@@ -1,3 +1,27 @@
+interface User {
+  UserName: string, 
+  FirstName: string,
+  LastName: string,
+  FullName?: string,
+  Email: string,
+  LastLogin?: string,
+  CreatedDate?: string,
+  [key:string]:any,
+  CoursesCompleted: Achievement[]
+}
+
+interface Achievement {
+  //Store the username inside the achievement
+  UserWhoAchieved: string,
+  Title: string,
+  AchievementDate: string,
+  CourseId: string,
+  CompliantTillDate?: string|null,
+  //How many days into Onboarding were they when they completed this?
+  DaysIntoOnboardingWhenCompleted?: number,
+  [key:string]:any
+}
+
 /**
  * The following functions: (getUser, getLitmosAchievement, getAllCompanyUsers) are via the Litmos API
  */
@@ -18,16 +42,7 @@ function getUser(username: string) {
   var url = baseUrl+"/users/"+username+"?source=smittysapp&format=json";
   try {
     var result = UrlFetchApp.fetch(url,options as any);
-    var user: {
-      UserName: string, 
-      FirstName: string,
-      LastName: string,
-      FullName: string,
-      Email: string,
-      LastLogin: string,
-      CreatedDate: string,
-      others?: string
-    } =  JSON.parse(result.getContentText());
+    var user: User =  JSON.parse(result.getContentText());
     
     return user;
   } catch (err) {
@@ -44,12 +59,7 @@ function getLitmosAchievements(user: {UserName: string, others?: any}, since?: n
   } 
   try {
     var result =  UrlFetchApp.fetch(url,options as any);
-    var achievements: {
-        Title: string,
-        AchievementDate: string,
-        CourseId: string,
-        CompliantTillDate?: string|null
-      }[] =  JSON.parse(result.getContentText());
+    var achievements: Achievement[] =  JSON.parse(result.getContentText());
 
     return achievements;
   } catch (err) {
@@ -63,15 +73,7 @@ function getAllCompanyUsers(companyID: string) {
    
     try {
       var result =  UrlFetchApp.fetch(url,options as any);
-      var users: {
-        UserName: string,
-        FirstName: string,
-        LastName: string,
-        FullName: string,
-        Email: string,
-        others?: any
-        
-      }[] =  JSON.parse(result.getContentText());
+      var users: User[] =  JSON.parse(result.getContentText());
       return users;
     } catch (err) {
       console.log(err)
