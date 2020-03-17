@@ -7,7 +7,7 @@ function convertLitmosDate(litmosDate) {
     var lateDate = middleDate.split("-")[0];
     var usefulDate = new Date(0);
     usefulDate.setMilliseconds(+lateDate + +conversionFactor);
-    return usefulDate.toTimeString();
+    return usefulDate;
 }
 function millsSince(time1, time2) {
     if (time2 === void 0) { time2 = new Date(); }

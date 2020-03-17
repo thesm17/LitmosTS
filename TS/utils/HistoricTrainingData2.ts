@@ -59,7 +59,7 @@ function getUserTrainingStatus_(user: User) {
  */
 function fixLitmosDates_(achievements:Achievement[]){
   let fixedAchievements = achievements.map(function (achievement){
-    achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate);
+    achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate).toString();
     return achievement;
   })
   return fixedAchievements;
@@ -84,7 +84,7 @@ function adjustAchievementDatesByActivationDate_( allUserTrainingHistory: User[]
  * This runner is for testing in the Scripts editor
  * @param companyID 
  */
-function HistoricTrainingRunner_clasp(companyID = "308480811") {
+function HistoricTrainingRunner_clasp(companyID = "308473011") {
   //getCompanyID from a spreadsheet or something
   //!FOR TESTING
 
@@ -92,6 +92,8 @@ function HistoricTrainingRunner_clasp(companyID = "308480811") {
   var allUserTrainingStatus = getAllUsersTrainingStatus_(allCompanyUsers);
   var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, "2020-03-03");
   console.log(trainingHistory)
+  var historicArray = buildHistoricalAchievementArray_(trainingHistory);
+  console.log(historicArray);
 
 }
 
@@ -125,8 +127,8 @@ function timeTestingRunner() {
   return [d1, t2, t3];
 }
 
-function buildHistoricalAchievementArray_(trainingHistory: User[]) {
-  var achievementsArray:Achievement[][]=[[]];
+function buildHistoricalAchievementArray_(trainingHistory: User[],daysToReportOn: number = 62) {
+  var achievementsArray:Achievement[][]=Array.from(Array(daysToReportOn), function(){return new Array()})
   trainingHistory.forEach(function(user){
     user.CoursesCompleted.forEach(function(achievement){
       //Throw the UserName into the achievement's array
@@ -135,7 +137,9 @@ function buildHistoricalAchievementArray_(trainingHistory: User[]) {
       //Decide which day's cell to fill
       var day = Math.floor(achievement.DaysIntoOnboardingWhenCompleted || 0);
       
-      //Add the achievement into the array
+      //If the day is within the scope of onboardingAdd the achievement into the array
+
+      if (day<achievementsArray.length)
       achievementsArray[day].push(achievement);
     })
   })

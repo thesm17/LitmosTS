@@ -55,7 +55,7 @@ function getUserTrainingStatus_(user) {
  */
 function fixLitmosDates_(achievements) {
     var fixedAchievements = achievements.map(function (achievement) {
-        achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate);
+        achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate).toString();
         return achievement;
     });
     return fixedAchievements;
@@ -81,11 +81,13 @@ function adjustAchievementDatesByActivationDate_(allUserTrainingHistory, activat
 function HistoricTrainingRunner_clasp(companyID) {
     //getCompanyID from a spreadsheet or something
     //!FOR TESTING
-    if (companyID === void 0) { companyID = "308480811"; }
+    if (companyID === void 0) { companyID = "308473011"; }
     var allCompanyUsers = getAllCompanyUsers(companyID);
     var allUserTrainingStatus = getAllUsersTrainingStatus_(allCompanyUsers);
     var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, "2020-03-03");
     console.log(trainingHistory);
+    var historicArray = buildHistoricalAchievementArray_(trainingHistory);
+    console.log(historicArray);
 }
 /**
  * Loops through each company user and returns all their achievements
@@ -113,16 +115,18 @@ function timeTestingRunner() {
     var t3 = millsSince(new Date, new Date(1990, 4, 24));
     return [d1, t2, t3];
 }
-function buildHistoricalAchievementArray_(trainingHistory) {
-    var achievementsArray = [[]];
+function buildHistoricalAchievementArray_(trainingHistory, daysToReportOn) {
+    if (daysToReportOn === void 0) { daysToReportOn = 62; }
+    var achievementsArray = Array.from(Array(daysToReportOn), function () { return new Array(); });
     trainingHistory.forEach(function (user) {
         user.CoursesCompleted.forEach(function (achievement) {
             //Throw the UserName into the achievement's array
             achievement.UserWhoAchieved = user.UserName;
             //Decide which day's cell to fill
             var day = Math.floor(achievement.DaysIntoOnboardingWhenCompleted || 0);
-            //Add the achievement into the array
-            achievementsArray[day].push(achievement);
+            //If the day is within the scope of onboardingAdd the achievement into the array
+            if (day < achievementsArray.length)
+                achievementsArray[day].push(achievement);
         });
     });
     return achievementsArray;
