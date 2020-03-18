@@ -1,3 +1,11 @@
+interface PreppedURL {
+  request: {
+    url: string,
+    options: any
+  },
+  responseType: string
+}
+
 interface User {
   UserName: string, 
   FirstName: string,
@@ -33,6 +41,7 @@ var options = {
     'headers': {
       'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8' }
   }
+
 /**
  * This function is unique from getAllCompanyUsers because it is the only one that can return LastLogin and CreatedDate
  * @param username Litmos username formatted as cXXXXuXXXXe
@@ -50,24 +59,63 @@ function getUser(username: string) {
   }
 }
 
-function getLitmosAchievements(user: {UserName: string, others?: any}, since?: number) {
+/**
+ * For mapping all Users through so then you can UrlFetchApp.fetchAll() to speed things along.
+ * @param user User object
+ * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
+ */
+
+function prepGetLitmosAchievements(user: User, since?:string) {
+  var url;
   if (since) {
-    var url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json&since="+since;
+    url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json&since="+since;
   }
   else {
-    var url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json";
+    url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json";
   } 
-  try {
-    var result =  UrlFetchApp.fetch(url,options as any);
-    var achievements: Achievement[] =  JSON.parse(result.getContentText());
+  var prepped: PreppedURL = {
+    responseType: "Achievement[]", 
+    request: {
+      options:options,
+      url: url
+    }};
+  return prepped;
+}
 
-    return achievements;
-  } catch (err) {
-    throw new Error(`Error getting achievements for ${user.UserName}. Error given: \n${err}`);
-    }
+/**
+ * Gets achievements for a user with a Litmos username (eg cXXXXuXXXXe). The @param since accepts dates formed as YYYY-MM-DD to serve as an endpoint for searching for achievements
+ * @param user Litmos username
+ * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
+ */
+function getAllUserLitmosAchievements(users:User[], since?: string) {
+  //Get the api calls prepped to get all achievements in bulk  
+  var userAchievementGETurls = users.map(user => prepGetLitmosAchievements(user, since));
+
+  //Bulk get all achievements for all users
+  var achievements = getAnyLitmos(userAchievementGETurls);
+  
+  //Set the corresponding user to their proper Achievement[]
+  //user[0] will get the Achievement[] corresponding to achievements[0]
+  users.forEach(function(user,index){
+    var completedCourses = achievements[index] as Achievement[]
+    user.CoursesCompleted = completedCourses
+  })
+
+  //Return the array of users with a full CoursesCompleted[]
+  return users;
   }
 
-function getAllCompanyUsers(companyID: string) {
+  function prepGetAllCompanyUsers(companyID: string) {  
+    var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
+    var prepped: PreppedURL = {
+      responseType: "User[]", 
+      request: {
+        url:url,
+        options:options}};
+    return prepped;
+  }
+
+  function getAllCompanyUsers(companyID: string) {
   
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
    
@@ -80,6 +128,36 @@ function getAllCompanyUsers(companyID: string) {
       throw new Error(`Error while trying to get company users of ${companyID}`)
     } 
   }
+
+function getAnyLitmos(preppedUrls: PreppedURL[]) {
+  try {
+    var urls = preppedUrls.map(url => url.request) 
+    var results =  UrlFetchApp.fetchAll(urls);
+    var container = results.map(function(result,index) {
+      switch(preppedUrls[index].responseType){
+        case "Achievement[]": {
+          var achievements: Achievement[] =  JSON.parse(result.getContentText());
+          return achievements;
+        }
+        case "User[]": {
+          var users: User[] =  JSON.parse(result.getContentText());
+          return users;
+        }
+        default: {
+          throw new Error(`Improper responseType. Must be either Achievement[] or User[], but was ${preppedUrls[index].responseType}`);
+        } 
+      }
+    })
+    return container;
+    
+
+  } catch (err) {
+    throw new Error(`Error getting achievements for the given url array. Error given: \n${err}`);
+    }
+}
+
+
+
 
   /**
  * accountID and secretKey will be stored in UserProperties and retrieved here

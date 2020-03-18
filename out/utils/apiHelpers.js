@@ -26,21 +26,57 @@ function getUser(username) {
         throw new Error("There was an erro getting user " + username + " from Litmos.");
     }
 }
-function getLitmosAchievements(user, since) {
+/**
+ * For mapping all Users through so then you can UrlFetchApp.fetchAll() to speed things along.
+ * @param user User object
+ * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
+ */
+function prepGetLitmosAchievements(user, since) {
+    var url;
     if (since) {
-        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json&since=" + since;
+        url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json&since=" + since;
     }
     else {
-        var url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json";
+        url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json";
     }
-    try {
-        var result = UrlFetchApp.fetch(url, options);
-        var achievements = JSON.parse(result.getContentText());
-        return achievements;
-    }
-    catch (err) {
-        throw new Error("Error getting achievements for " + user.UserName + ". Error given: \n" + err);
-    }
+    var prepped = {
+        responseType: "Achievement[]",
+        request: {
+            options: options,
+            url: url
+        }
+    };
+    return prepped;
+}
+/**
+ * Gets achievements for a user with a Litmos username (eg cXXXXuXXXXe). The @param since accepts dates formed as YYYY-MM-DD to serve as an endpoint for searching for achievements
+ * @param user Litmos username
+ * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
+ */
+function getAllUserLitmosAchievements(users, since) {
+    //Get the api calls prepped to get all achievements in bulk  
+    var userAchievementGETurls = users.map(function (user) { return prepGetLitmosAchievements(user, since); });
+    //Bulk get all achievements for all users
+    var achievements = getAnyLitmos(userAchievementGETurls);
+    //Set the corresponding user to their proper Achievement[]
+    //user[0] will get the Achievement[] corresponding to achievements[0]
+    users.forEach(function (user, index) {
+        var completedCourses = achievements[index];
+        user.CoursesCompleted = completedCourses;
+    });
+    //Return the array of users with a full CoursesCompleted[]
+    return users;
+}
+function prepGetAllCompanyUsers(companyID) {
+    var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c" + companyID + "u";
+    var prepped = {
+        responseType: "User[]",
+        request: {
+            url: url,
+            options: options
+        }
+    };
+    return prepped;
 }
 function getAllCompanyUsers(companyID) {
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c" + companyID + "u";
@@ -52,6 +88,31 @@ function getAllCompanyUsers(companyID) {
     catch (err) {
         console.log(err);
         throw new Error("Error while trying to get company users of " + companyID);
+    }
+}
+function getAnyLitmos(preppedUrls) {
+    try {
+        var urls = preppedUrls.map(function (url) { return url.request; });
+        var results = UrlFetchApp.fetchAll(urls);
+        var container = results.map(function (result, index) {
+            switch (preppedUrls[index].responseType) {
+                case "Achievement[]": {
+                    var achievements = JSON.parse(result.getContentText());
+                    return achievements;
+                }
+                case "User[]": {
+                    var users = JSON.parse(result.getContentText());
+                    return users;
+                }
+                default: {
+                    throw new Error("Improper responseType. Must be either Achievement[] or User[], but was " + preppedUrls[index].responseType);
+                }
+            }
+        });
+        return container;
+    }
+    catch (err) {
+        throw new Error("Error getting achievements for the given url array. Error given: \n" + err);
     }
 }
 /**

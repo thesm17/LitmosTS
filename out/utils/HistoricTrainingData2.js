@@ -32,23 +32,6 @@
 // Adjust the date, changing it into a standard Date() 
 // 4. Reformat all data
 /**
- * Given a Litmos user object, return it formatted for SharpSpring use.
- * @param user Litmos user gotten by getUser() or getAllCompanyUsers()
- * @returns the directed userTrainingStatus{}
- */
-function getUserTrainingStatus_(user) {
-    var coursesCompleted_raw = getLitmosAchievements(user);
-    var coursesCompleted_dateCorrected = fixLitmosDates_(coursesCompleted_raw);
-    var userRecord = {
-        FirstName: user.FirstName,
-        LastName: user.LastName,
-        Email: user.Email,
-        UserName: user.UserName,
-        CoursesCompleted: coursesCompleted_dateCorrected
-    };
-    return userRecord;
-}
-/**
  * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
  * @param achievements the complete achievements array recieved from getLitmosAchievements()
  * @returns the same set of achievements but with standardized dates
@@ -82,19 +65,6 @@ function HistoricTrainingRunner_clasp(companyID) {
     //getCompanyID from a spreadsheet or something
     //!FOR TESTING
     if (companyID === void 0) { companyID = "308473011"; }
-    var allCompanyUsers = getAllCompanyUsers(companyID);
-    var allUserTrainingStatus = getAllUsersTrainingStatus_(allCompanyUsers);
-    var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, "2020-03-03");
-    console.log(trainingHistory);
-    var historicArray = buildHistoricalAchievementArray_(trainingHistory);
-    console.log(historicArray);
-}
-/**
- * Loops through each company user and returns all their achievements
- * @param allCompanyUsers from getAllCompanyUsers()
- */
-function getAllUsersTrainingStatus_(allCompanyUsers) {
-    return allCompanyUsers.map(function (user) { return getUserTrainingStatus_(user); });
 }
 /**
  * This function takes two times and finds the number of days between them, as a decimal
@@ -115,6 +85,11 @@ function timeTestingRunner() {
     var t3 = millsSince(new Date, new Date(1990, 4, 24));
     return [d1, t2, t3];
 }
+/**
+ * Loop through all users/achievements and place them onto a grid that's as many days wide as you want to report on. Default is 62 days
+ * @param trainingHistory User[] of all training history chained from adjustAchievementDatesByActivationDate_
+ * @param daysToReportOn set how big the reporting array should be to place users' achievements onto the sheet
+ */
 function buildHistoricalAchievementArray_(trainingHistory, daysToReportOn) {
     if (daysToReportOn === void 0) { daysToReportOn = 62; }
     var achievementsArray = Array.from(Array(daysToReportOn), function () { return new Array(); });
@@ -124,11 +99,37 @@ function buildHistoricalAchievementArray_(trainingHistory, daysToReportOn) {
             achievement.UserWhoAchieved = user.UserName;
             //Decide which day's cell to fill
             var day = Math.floor(achievement.DaysIntoOnboardingWhenCompleted || 0);
-            //If the day is within the scope of onboardingAdd the achievement into the array
+            //If the day is within the scope of onboarding, add the achievement into the array
             if (day < achievementsArray.length)
                 achievementsArray[day].push(achievement);
         });
     });
     return achievementsArray;
+}
+function getCompanyHistoricalAchievementArray(companyID, activationDate, reportingDayLength) {
+    if (reportingDayLength === void 0) { reportingDayLength = 60; }
+    //Establish how far back to report, typically 60 days
+    //Then format in YYYY-MM-DD for Litmos
+    var reportingThreshold = formatDate(calculateDaysAgo_(reportingDayLength));
+    //Search Litmos for all users with the corresponding companyID
+    var allCompanyUsers = getAllCompanyUsers(companyID);
+    //Get the training status for each user
+    var allUserTrainingStatus = getAllUserLitmosAchievements(allCompanyUsers, reportingThreshold);
+    //Correct achievement dates so they're relative to activation date
+    var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, activationDate);
+    console.log(trainingHistory);
+    //Build the historical array with the given adjusted achievements
+    var historicArray = buildHistoricalAchievementArray_(trainingHistory, reportingDayLength);
+    console.log(historicArray);
+    return historicArray;
+}
+function calculateDaysAgo_(since) {
+    var d = new Date();
+    d.setDate(d.getDate() - since);
+    return d;
+}
+function runthismydude() {
+    var myw00tarray = getCompanyHistoricalAchievementArray("308479000", "2020-02-03", 60);
+    console.log(myw00tarray);
 }
 //# sourceMappingURL=HistoricTrainingData2.js.map

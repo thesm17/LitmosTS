@@ -57,10 +57,25 @@ function getRecentAchievements (achievements: {AchievementDate: string, Title:st
   return recent;
 }
 
-function parseUsername (username: string)  {
+function parseCompanyIdFromLitmosUsername (username: string)  {
   return username.split("u")[0].substr(1);
 }
 
-function parseCompanyIdFromLitmosUsername (username: string)  {
-  return username.split("u")[0].substr(1);
+/**
+ * Converts Date into YYYY-MM-DD format for Litmos
+ * @param date 
+ * @returns date in YYYY-MM-DD format for Litmos
+ */
+function formatDate(date: Date) {
+  var d = new Date(date),
+      month = '' + (d.getMonth() + 1),
+      day = '' + d.getDate(),
+      year = d.getFullYear();
+
+  if (month.length < 2) 
+      month = '0' + month;
+  if (day.length < 2) 
+      day = '0' + day;
+
+  return [year, month, day].join('-');
 }
