@@ -42,8 +42,12 @@ function prepGetLitmosAchievements(user, since) {
     var prepped = {
         responseType: "Achievement[]",
         request: {
-            options: options,
-            url: url
+            'method': 'GET',
+            'muteHttpExceptions': true,
+            'url': "" + url,
+            'headers': {
+                'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',
+            }
         }
     };
     return prepped;
@@ -53,7 +57,11 @@ function prepGetLitmosAchievements(user, since) {
  * @param user Litmos username
  * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
  */
-function getAllUserLitmosAchievements(users, since) {
+function getAllUserLitmosAchievements_(users, since) {
+    //Check if the number of individual learners is over 50 (due to Litmos' 100-call per minute limit).
+    //If so, slice it so we only get the first 50 users' results.
+    if (users.length > 50)
+        users.length = 50;
     //Get the api calls prepped to get all achievements in bulk  
     var userAchievementGETurls = users.map(function (user) { return prepGetLitmosAchievements(user, since); });
     //Bulk get all achievements for all users
@@ -72,8 +80,12 @@ function prepGetAllCompanyUsers(companyID) {
     var prepped = {
         responseType: "User[]",
         request: {
-            url: url,
-            options: options
+            'method': 'GET',
+            'muteHttpExceptions': true,
+            'url': "" + url,
+            'headers': {
+                'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',
+            }
         }
     };
     return prepped;
@@ -92,7 +104,7 @@ function getAllCompanyUsers(companyID) {
 }
 function getAnyLitmos(preppedUrls) {
     try {
-        var urls = preppedUrls.map(function (url) { return url.request; });
+        var urls = preppedUrls.map(function (url) { return (url.request); });
         var results = UrlFetchApp.fetchAll(urls);
         var container = results.map(function (result, index) {
             switch (preppedUrls[index].responseType) {

@@ -1,9 +1,13 @@
 interface PreppedURL {
+  responseType: string;
   request: {
-    url: string,
-    options: any
-  },
-  responseType: string
+      method: any;
+      muteHttpExceptions: boolean;
+      url: string;
+      headers: {
+          apikey: string;
+      };
+  };
 }
 
 interface User {
@@ -73,12 +77,15 @@ function prepGetLitmosAchievements(user: User, since?:string) {
   else {
     url = "https://api.litmos.com/v1.svc/achievements?userid="+user.UserName+"&source=smittysapp&format=json";
   } 
-  var prepped: PreppedURL = {
+  var prepped = {
     responseType: "Achievement[]", 
     request: {
-      options:options,
-      url: url
-    }};
+     'method': 'GET',
+     'muteHttpExceptions' : true,
+     'url': `${url}`,
+     'headers': {
+      'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',      
+    }}};
   return prepped;
 }
 
@@ -87,7 +94,11 @@ function prepGetLitmosAchievements(user: User, since?:string) {
  * @param user Litmos username
  * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
  */
-function getAllUserLitmosAchievements(users:User[], since?: string) {
+function getAllUserLitmosAchievements_(users:User[], since?: string) {
+  //Check if the number of individual learners is over 50 (due to Litmos' 100-call per minute limit).
+  //If so, slice it so we only get the first 50 users' results.
+  if (users.length>50) users.length = 50
+
   //Get the api calls prepped to get all achievements in bulk  
   var userAchievementGETurls = users.map(user => prepGetLitmosAchievements(user, since));
 
@@ -107,11 +118,15 @@ function getAllUserLitmosAchievements(users:User[], since?: string) {
 
   function prepGetAllCompanyUsers(companyID: string) {  
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
-    var prepped: PreppedURL = {
+    var prepped = {
       responseType: "User[]", 
       request: {
-        url:url,
-        options:options}};
+       'method': 'GET',
+       'muteHttpExceptions' : true,
+       'url': `${url}`,
+       'headers': {
+        'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',      
+      }}};
     return prepped;
   }
 
@@ -131,7 +146,7 @@ function getAllUserLitmosAchievements(users:User[], since?: string) {
 
 function getAnyLitmos(preppedUrls: PreppedURL[]) {
   try {
-    var urls = preppedUrls.map(url => url.request) 
+    var urls = preppedUrls.map(url => (url.request))
     var results =  UrlFetchApp.fetchAll(urls);
     var container = results.map(function(result,index) {
       switch(preppedUrls[index].responseType){

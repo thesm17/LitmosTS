@@ -1,7 +1,7 @@
 /**
  * Given a companyID, grab any single user (the first for the MVP), and format the users's training record as:
  * 
- * userTrainingHistory: {
+ * userallUsersAchievements: {
  *  FirstName: string,
  *  LastName: string
  *  Email: string,
@@ -49,29 +49,17 @@ function fixLitmosDates_(achievements:Achievement[]){
 
 /**
  * Pass in the whole company training record [] and ingest each user then each achievement therein to adjust the AchievementDate in terms of the activationDate
- * @param {User[]} allUserTrainingHistory  comes from getAllUsersTrainingStatus()
+ * @param {User[]} allUserallUsersAchievements  comes from getAllUsersTrainingStatus()
  * @param {string|date} activationDate
  */
-function adjustAchievementDatesByActivationDate_( allUserTrainingHistory: User[], activationDate: string|Date) {
+function adjustAchievementDatesByActivationDate_( allUserallUsersAchievements: User[], activationDate: string|Date) {
   //map through each user
-  allUserTrainingHistory.forEach(function(user) {
+  allUserallUsersAchievements.forEach(function(user) {
     user.CoursesCompleted.forEach(function(achievement){
       achievement.DaysIntoOnboardingWhenCompleted = daysBetween_(achievement.AchievementDate,activationDate)
     })
   })
-  return allUserTrainingHistory
-}
-
-/**
- * This runner is for testing in the Scripts editor
- * @param companyID 
- */
-function HistoricTrainingRunner_clasp(companyID = "308473011") {
-  //getCompanyID from a spreadsheet or something
-  //!FOR TESTING
-
-  
-
+  return allUserallUsersAchievements
 }
 
 /**
@@ -83,43 +71,58 @@ function daysBetween_(t1: string | Date,t2: string | Date | undefined) {
   return daysSince(millsSince(t1,t2))
 }
 
-function timeTestingRunner() {
-  //returns 1218559000
-  var m1 = millsSince("3/16/2020 22:29:19", "2020-03-03");
-  //returns 14.10369212962963
-  var d1 = daysSince(m1);
-  //returns 0
-  var t2 = millsSince(new Date());
-  // This one is dicey because months are actually zero indexed, so this is actually may 24.
-  var t3 = millsSince(new Date, new Date(1990, 4, 24));
-  return [d1, t2, t3];
-}
-
 /**
  * Loop through all users/achievements and place them onto a grid that's as many days wide as you want to report on. Default is 62 days
- * @param trainingHistory User[] of all training history chained from adjustAchievementDatesByActivationDate_
- * @param daysToReportOn set how big the reporting array should be to place users' achievements onto the sheet
+ * @param allUsersAchievements User[] of all training history chained from adjustAchievementDatesByActivationDate_
+ * @param daysToReportOn set how many columns the reporting array should be to place users' achievements onto the sheet
  */
-function buildHistoricalAchievementArray_(trainingHistory: User[],daysToReportOn: number = 62) {
-  var achievementsArray:Achievement[][]=Array.from(Array(daysToReportOn), function(){return new Array()});
+function buildHistoricalAchievementArray_(allUsersAchievements: User[],daysToReportOn: number = 60) {
+  //Create a 2d array, with one row per user
+  var achievementsArray = Array.from(Array(allUsersAchievements.length), () =>  Array(daysToReportOn));
+  
 
-  trainingHistory.forEach(function(user){
-    user.CoursesCompleted.forEach(function(achievement){
+ 
+  //Loop through all the achievements for a user
+  //If the achievement is in the reporting window, add it to the company's achievementsArray for the proper user in the proper cell
+  allUsersAchievements.forEach(function(user, userIndex){
+    user.CoursesCompleted.forEach(function(achievement, achievementIndex){
+
       //Throw the UserName into the achievement's array
       achievement.UserWhoAchieved = user.UserName
 
       //Decide which day's cell to fill
       var day = Math.floor(achievement.DaysIntoOnboardingWhenCompleted || 0);
       
-      //If the day is within the scope of onboarding, add the achievement into the array
-      if (day<achievementsArray.length)
-      achievementsArray[day].push(achievement);
+      //If the day is within the scope of reporting (onboarding), add the achievement into the array
+      if (day < daysToReportOn){
+
+        try{
+          //Make sure there actually is an achievement there
+          if (typeof achievement !== "undefined") {
+            //debugging
+            var currentValue = achievementsArray[userIndex][day]
+            
+            //If the array is undefined, then set the first value to avoid `undefined` errors
+            if (typeof currentValue == "undefined") {
+              achievementsArray[userIndex][day]=[achievement];
+            }
+            else {
+            //The array has already been defined, so push the next achievement onto that day
+              achievementsArray[userIndex][day].push([achievement]);
+            } 
+          }
+          else {
+            console.log("This is an empty achievement")
+          }
+        } 
+        catch (err)  {throw new Error(err);}
+      }
     })
   })
-  return achievementsArray;
+  return achievementsArray as Achievement[][];
 }
 
-function getCompanyHistoricalAchievementArray(companyID: string, activationDate: string| Date, reportingDayLength: number=60) {
+function getCompanyHistoricalAchievementArray_(companyID: string, activationDate: string| Date, reportingDayLength: number=60) {
   //Establish how far back to report, typically 60 days
   //Then format in YYYY-MM-DD for Litmos
   var reportingThreshold = formatDate(calculateDaysAgo_(reportingDayLength))
@@ -128,14 +131,19 @@ function getCompanyHistoricalAchievementArray(companyID: string, activationDate:
   var allCompanyUsers = getAllCompanyUsers(companyID);
 
   //Get the training status for each user
-  var allUserTrainingStatus = getAllUserLitmosAchievements(allCompanyUsers, reportingThreshold);
+  var allUserTrainingStatus = getAllUserLitmosAchievements_(allCompanyUsers, reportingThreshold);
+
+  //Correct achievement dates so they're out of Litmos form
+  var allUserTrainingStatus_properDates = allUserTrainingStatus.map(function(user){
+    user.CoursesCompleted = fixLitmosDates_(user.CoursesCompleted)
+    return user;
+  })
 
   //Correct achievement dates so they're relative to activation date
-  var trainingHistory = adjustAchievementDatesByActivationDate_(allUserTrainingStatus, activationDate);
-  console.log(trainingHistory)
+  var allUsersAchievements = adjustAchievementDatesByActivationDate_(allUserTrainingStatus_properDates, activationDate);
 
   //Build the historical array with the given adjusted achievements
-  var historicArray = buildHistoricalAchievementArray_(trainingHistory, reportingDayLength);
+  var historicArray = buildHistoricalAchievementArray_(allUsersAchievements, reportingDayLength);
   console.log(historicArray);
   return historicArray;
 }
@@ -147,6 +155,26 @@ function calculateDaysAgo_(since: number) {
 }
 
 function runthismydude(){
-var myw00tarray = getCompanyHistoricalAchievementArray("308479000","2020-02-03",60)
+var myw00tarray = getCompanyHistoricalAchievementArray_("308477846","2020-02-01",90)
 console.log(myw00tarray);
+}
+
+function displayCompanyHistoricTrainingOnSS_(companyID: string, onboardingStartDate: string, reportingThreshold:number = 60) {
+  //Define the spreadsheet to display onto
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training");
+  
+  //Get all achievements for users from Litmos. 
+  var companyAchievementHistory = getCompanyHistoricalAchievementArray_(companyID, onboardingStartDate, reportingThreshold);
+  
+  //Calculate the range to place onto SpreadSheet
+  var rows = companyAchievementHistory.length;
+  var columns = Math.max(...(companyAchievementHistory.map(day =>  day.length)));
+
+  if (sheet)
+  var r = sheet.getRange(5,1,rows,columns).setValues(companyAchievementHistory);
+
+}
+
+function displayRunner() {
+  displayCompanyHistoricTrainingOnSS_("308477846","2020-02-01");
 }
