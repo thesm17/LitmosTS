@@ -95,7 +95,7 @@ function buildHistoricalAchievementArray_(allUsersAchievements, daysToReportOn) 
                         }
                         else {
                             //The array has already been defined, so push the next achievement onto that day
-                            achievementsArray[userIndex][day].push([achievement]);
+                            achievementsArray[userIndex][day].push(achievement);
                         }
                     }
                     else {

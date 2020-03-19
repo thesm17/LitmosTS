@@ -20,7 +20,7 @@ interface User {
   CreatedDate?: string,
   [key:string]:any,
   CoursesCompleted: Achievement[],
-  CourseHistory: Achievement[][]
+  CourseHistory: [Achievement[]]
 }
 
 interface Achievement {
