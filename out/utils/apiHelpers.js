@@ -60,10 +60,13 @@ function prepGetLitmosAchievements(user, since) {
 function getAllUserLitmosAchievements_(users, since) {
     //Check if the number of individual learners is over 50 (due to Litmos' 100-call per minute limit).
     //If so, slice it so we only get the first 50 users' results.
+    console.log("Prepping to get all user records, but need to make sure we don't overload the Litmos API limit. Total users: " + users.length);
     if (users.length > 50)
         users.length = 50;
+    console.log("Trimmed users so there are 50 or less: " + users.length + " users.");
     //Get the api calls prepped to get all achievements in bulk  
     var userAchievementGETurls = users.map(function (user) { return prepGetLitmosAchievements(user, since); });
+    console.log("Prepped urls for getting from Litmos.");
     //Bulk get all achievements for all users
     var achievements = getAnyLitmos(userAchievementGETurls);
     //Set the corresponding user to their proper Achievement[]
@@ -94,6 +97,7 @@ function getAllCompanyUsers(companyID) {
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c" + companyID + "u";
     try {
         var result = UrlFetchApp.fetch(url, options);
+        console.log("All company users gotten from litmos. ");
         var users = JSON.parse(result.getContentText());
         return users;
     }
@@ -106,6 +110,7 @@ function getAnyLitmos(preppedUrls) {
     try {
         var urls = preppedUrls.map(function (url) { return (url.request); });
         var results = UrlFetchApp.fetchAll(urls);
+        console.log(" * * * All individual results gotten.");
         var container = results.map(function (result, index) {
             switch (preppedUrls[index].responseType) {
                 case "Achievement[]": {

@@ -112,18 +112,28 @@ function getUserData(user) {
         daysSinceCreatedDate: daysSinceCreatedDate(userAccountData.CreatedDate)
     };
 }
-function checkCertificationStatus(userAchievements) {
+/**
+ * Check if any of the given Achievements[] are defined as certification achievements
+ * @param userAchievements An Achievements[]
+ * @param certificationExamsIDs Pass in optional courseIDs[] using Litmos courseIDs. The default param checks for the courseID for the MAE essentials exam, ["PgqK7l17TdE1"]
+ * !could be easily changed to search for any given course completion using the optional parameter!
+ */
+function checkCertificationStatus(userAchievements, certificationExamsIDs) {
     //below are the course IDs that together make up certification
     // PgqK7l17TdE1 is the MA essentials cert exam
     // ax6BzyMrCds1 is the SWS cert exam
-    var certExamIds = ["PgqK7l17TdE1"];
-    if (certExamIds.length == 0) {
-        throw new Error("Error: No courses have been specific for awarding certification.");
-    }
-    var examsPassed = userAchievements.filter(function (achievement) { return certExamIds.includes(achievement.CourseId); });
+    if (certificationExamsIDs === void 0) { certificationExamsIDs = ["PgqK7l17TdE1"]; }
+    var examsPassed = userAchievements.filter(function (achievement) {
+        if (achievement) {
+            return certificationExamsIDs.includes(achievement.CourseId);
+        }
+        else {
+            return false;
+        }
+    });
     return {
-        certificationPercent: (examsPassed.length * 100 / certExamIds.length),
-        certificationComplete: Math.floor(examsPassed.length / certExamIds.length),
+        certificationPercent: (examsPassed.length * 100 / certificationExamsIDs.length),
+        certificationComplete: Math.floor(examsPassed.length / certificationExamsIDs.length),
         examData: {
             examsPassed: examsPassed.map(function (exam) { return exam.Title; }),
             completionDates: examsPassed.map(function (exam) { return convertLitmosDate(exam.AchievementDate); })

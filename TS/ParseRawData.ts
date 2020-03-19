@@ -37,12 +37,13 @@ function newvlookup(sheet: any, column: number, index: number, value: string) {
     console.log(data);
     for (var i = 0; i < data.length; ++i) {
         if (data[i][0] == value) {
-            return data[i][index];
+            return data[i][index] as string;
         }
     }
 }
 //# sourceMappingURL=ParseRawData.js.map
 
-function stringsEqual(str1: string, str2: string) {
+function stringsEqual(str1: string, str2: string| undefined) {
     return (str1===str2);
 }
+
