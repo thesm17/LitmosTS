@@ -19,7 +19,8 @@ interface User {
   LastLogin?: string,
   CreatedDate?: string,
   [key:string]:any,
-  CoursesCompleted: Achievement[]
+  CoursesCompleted: Achievement[],
+  CourseHistory: Achievement[][]
 }
 
 interface Achievement {
@@ -33,6 +34,7 @@ interface Achievement {
   DaysIntoOnboardingWhenCompleted?: number,
   [key:string]:any
 }
+
 
 /**
  * The following functions: (getUser, getLitmosAchievement, getAllCompanyUsers) are via the Litmos API

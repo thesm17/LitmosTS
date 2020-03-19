@@ -124,7 +124,7 @@ function getUserData (user: {UserName: string, others?: any}) {
   }
 }
 
-function checkCertificationStatus  (userAchievements: {CourseId: string, Title: string, AchievementDate: string, others? : any}[]){
+function checkCertificationStatus  (userAchievements: Achievement[]){
   //below are the course IDs that together make up certification
   // PgqK7l17TdE1 is the MA essentials cert exam
   // ax6BzyMrCds1 is the SWS cert exam

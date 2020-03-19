@@ -110,6 +110,12 @@ function buildHistoricalAchievementArray_(allUsersAchievements, daysToReportOn) 
     });
     return achievementsArray;
 }
+/**
+ * Main runner to get a company's training history as far back as you'd like.
+ * @param companyID SharpSpring company ID (eg. 308234543)
+ * @param activationDate Can be pasted straight from a Google sheets date field
+ * @param reportingDayLength How many days should be included in the report?
+ */
 function getCompanyHistoricalAchievementArray_(companyID, activationDate, reportingDayLength) {
     if (reportingDayLength === void 0) { reportingDayLength = 60; }
     //Establish how far back to report, typically 60 days
@@ -126,10 +132,14 @@ function getCompanyHistoricalAchievementArray_(companyID, activationDate, report
     });
     //Correct achievement dates so they're relative to activation date
     var allUsersAchievements = adjustAchievementDatesByActivationDate_(allUserTrainingStatus_properDates, activationDate);
-    //Build the historical array with the given adjusted achievements
+    //Build the whole historical array with the given adjusted achievements
     var historicArray = buildHistoricalAchievementArray_(allUsersAchievements, reportingDayLength);
-    console.log(historicArray);
-    return historicArray;
+    //Loop through the historicArray and add each users' historical array to the User
+    var userHistoricData = allUsersAchievements.map(function (user, userIndex) {
+        user.CourseHistory = historicArray[userIndex];
+        return user;
+    });
+    return userHistoricData;
 }
 function calculateDaysAgo_(since) {
     var d = new Date();
@@ -145,12 +155,49 @@ function displayCompanyHistoricTrainingOnSS_(companyID, onboardingStartDate, rep
     //Define the spreadsheet to display onto
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training");
     //Get all achievements for users from Litmos. 
-    var companyAchievementHistory = getCompanyHistoricalAchievementArray_(companyID, onboardingStartDate, reportingThreshold);
-    //Calculate the range to place onto SpreadSheet
-    var rows = companyAchievementHistory.length;
-    var columns = Math.max.apply(Math, (companyAchievementHistory.map(function (day) { return day.length; })));
-    if (sheet)
-        var r = sheet.getRange(5, 1, rows, columns).setValues(companyAchievementHistory);
+    var userHistories = getCompanyHistoricalAchievementArray_(companyID, onboardingStartDate, reportingThreshold);
+    //Insert beautification
+    var prettyArray = beautifyHistoricalArray_(userHistories);
+    //gotta fix stuff
+    // //Calculate the range to place onto SpreadSheet
+    // var rows = combinedTimeline.length;
+    // var columns = Math.max(...(combinedTimeline.map(day =>  day.length)));
+    // if (sheet)
+    // var r = sheet.getRange(5,3,rows,columns).setValues(combinedTimeline);
+}
+/**
+ * Prep the achievement data to look better on a spreadsheet.
+ * 1. Remove rows for users with no data to speed up searching
+ * 2. If one of them was the achievement test, put a * instead
+ * 3. Instead of slamming all the achievement data into one cell, display how many courses were completed that day
+ * 4. Displays "xx others users with no achievements" at the bottom
+ * @param achievements
+ */
+function beautifyHistoricalArray_(users) {
+    //1. Strip out users with no achievements
+    var strippedOutNonAchievers = users.filter(function (user) { return user.CoursesCompleted.length > 0; });
+    //2. Check if any users completed the certification courses
+    var certificationNoted = strippedOutNonAchievers.map(function (user) { return checkIfUserIsCertified(user); });
+    //3. Loop through each day and instead of returning the specific achievements, return how many there are
+    //If there happened to be an certification for that user, check whether it happened that day
+    //If it happened on that day, add a * to the number
+    var numbericalAchievementArray = strippedOutNonAchievers.map(function (user, userIndex) {
+        var numberArray = user.CourseHistory.map(function (day) {
+            // var count += day.length;
+        });
+    });
+}
+/**
+ * Given a User, loops through each day in the CoursesCompleted[] to see if any match the certification courses.
+ * @param user
+ * @returns true for a user who has passed the certification course
+ */
+function checkIfUserIsCertified(user) {
+    //Loop through each day in the user's course history and check if that course is the certification course
+    var certificationBoolean = user.CourseHistory.filter(function (course) {
+        (checkCertificationStatus(course).certificationPercent > 0.99);
+    });
+    return (certificationBoolean.length > 0);
 }
 function displayRunner() {
     displayCompanyHistoricTrainingOnSS_("308477846", "2020-02-01");
