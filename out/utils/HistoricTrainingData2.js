@@ -38,10 +38,10 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 function onOpen() {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu('Training History')
-        .addItem('Get Training History for cID at A2 item', 'menuAction')
+        .addItem('Get User History for cID at A2', 'displayIndividualUserResults_')
         .addToUi();
 }
-function menuAction() {
+function displayIndividualUserResults_() {
     var sheet = SpreadsheetApp.getActiveSheet();
     //Validating that it's the proper sheet
     if (sheet.getName() !== "Historic Training") {
@@ -62,7 +62,13 @@ function menuAction() {
         var obsd = findOBSD(cID).toString();
         console.log("Tried finding OBST; results are: " + obsd + "\n Length: " + obsd.length);
         if (obsd.length > 0) {
-            console.log("Onboarding start date found: " + obsd + ". Continuing.");
+            try {
+                console.log("Can I cast the obst as a date? " + obsd);
+            }
+            catch (err) {
+                console.log("Issue casting the osbd as a date: " + err);
+            }
+            console.log("Onboarding start date found: " + obsd + ".");
             displayCompanyHistoricTrainingOnSS_(cID, obsd);
         }
         else {
@@ -208,7 +214,7 @@ function displayCompanyHistoricTrainingOnSS_(companyID, onboardingStartDate, rep
     if (reportingThreshold === void 0) { reportingThreshold = 60; }
     if (sheet === void 0) { sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training"); }
     return __awaiter(this, void 0, void 0, function () {
-        var userHistories, prettyArray, rows, columns, oldData, topOBSD, r;
+        var userHistories, prettyArray, rows, columns, oldData, obst_formatted, returnDate, topOBSD, r;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -231,8 +237,18 @@ function displayCompanyHistoricTrainingOnSS_(companyID, onboardingStartDate, rep
                     //Clear the old data
                     console.log('Trying to clear old data off.');
                     oldData = sheet.getDataRange().offset(4, 0).clear({ contentsOnly: true });
-                    console.log("Trying to set the OBSD onto the sheet.");
-                    topOBSD = sheet.getRange(2, 2).setValue(onboardingStartDate);
+                    try {
+                        obst_formatted = onboardingStartDate.toString().split(" ").slice(1, 4).join(" ");
+                        console.log("Spliting the date: " + obst_formatted);
+                    }
+                    catch (err) {
+                        console.log("There was an issue formatting the date: " + err);
+                    }
+                    returnDate = function () { if (obst_formatted)
+                        return obst_formatted;
+                    else
+                        return onboardingStartDate; };
+                    topOBSD = sheet.getRange(2, 2).setValue(returnDate());
                     console.log("Trying to place the data onto the sheet.");
                     r = sheet.getRange(5, 1, rows, columns).setValues(prettyArray);
                     return [2 /*return*/];

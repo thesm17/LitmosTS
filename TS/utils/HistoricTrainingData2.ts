@@ -1,11 +1,11 @@
 function onOpen() {
   var ui = SpreadsheetApp.getUi()
   ui.createMenu('Training History')
-      .addItem('Get Training History for cID at A2 item', 'menuAction')
+      .addItem('Get User History for cID at A2', 'displayIndividualUserResults_')
       .addToUi()
 }
 
-function menuAction() {
+function displayIndividualUserResults_() {
   var sheet = SpreadsheetApp.getActiveSheet()
 
   //Validating that it's the proper sheet
@@ -29,8 +29,12 @@ function menuAction() {
     var obsd = findOBSD(cID).toString();
     console.log(`Tried finding OBST; results are: ${obsd}\n Length: ${obsd.length}`);
       if (obsd.length>0) {
-        console.log(`Onboarding start date found: ${obsd}. Continuing.`)
-        displayCompanyHistoricTrainingOnSS_(cID,obsd)
+        try {
+          console.log(`Can I cast the obst as a date? ${obsd as Date}`)
+        } catch (err) {console.log(`Issue casting the osbd as a date: ${err}`)
+      }
+        console.log(`Onboarding start date found: ${obsd}.`)
+        displayCompanyHistoricTrainingOnSS_(cID,obsd as Date) 
 
       } else {
         //No onboarding start date could be found
@@ -224,9 +228,14 @@ async function displayCompanyHistoricTrainingOnSS_(
     //Clear the old data
     console.log('Trying to clear old data off.')
     var oldData = sheet.getDataRange().offset(4,0).clear({contentsOnly:true})
-
-    console.log("Trying to set the OBSD onto the sheet.")
-    var topOBSD = sheet.getRange(2,2).setValue(onboardingStartDate as Date)
+    var obst_formatted: string; 
+    try{
+      obst_formatted = onboardingStartDate.toString().split(" ").slice(1,4).join(" ");
+      console.log(`Spliting the date: ${obst_formatted}`);
+    } catch (err) {console.log(`There was an issue formatting the date: ${err}`)}
+   
+    var returnDate = function(){if (obst_formatted) return obst_formatted; else return onboardingStartDate}
+    var topOBSD = sheet.getRange(2,2).setValue(returnDate())
 
     console.log("Trying to place the data onto the sheet.")
     var r = sheet.getRange(5,1,rows,columns).setValues(prettyArray)
