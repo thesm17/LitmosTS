@@ -53,20 +53,24 @@ function menuAction() {
     //Grab the companyID
     var cID = sheet.getRange(2, 1).getValue();
     //If there isn't one, alert the user.
-    if (cID == "")
+    if (cID == "") {
         SpreadsheetApp.getUi().alert("There's no company ID in cell A2. Please put one in and try again.");
+        throw new Error("There's no company ID in cell A2. Please put one in and try again.");
+    }
     try {
-        console.log("trying to get cID");
-        var obsd = findOBSD(cID);
-        if (obsd) {
-            console.log("onboarding start date found: " + obsd + ". Continuing.");
+        console.log("Searching for OBSD for " + cID + ".");
+        var obsd = findOBSD(cID).toString();
+        console.log("Tried finding OBST; results are: " + obsd + "\n Length: " + obsd.length);
+        if (obsd.length > 0) {
+            console.log("Onboarding start date found: " + obsd + ". Continuing.");
             displayCompanyHistoricTrainingOnSS_(cID, obsd);
         }
         else {
             //No onboarding start date could be found
-            SpreadsheetApp.getUi().alert("Unable to find an onboarding start date for " + cID + " in column N of sheet 'Training Status by AM' in spreadsheet 'Sales Cohort Training Status Tracker'. Attempting to run the report as if the OBST were exactly 60 days ago.");
-            console.log("Onboarding start date was not found: " + obsd + ". Continuing.");
-            displayCompanyHistoricTrainingOnSS_(cID, calculateDaysAgo_(60).toString());
+            console.log("Unable to find an onboarding start date for " + cID + " in column N of sheet 'Training Status by AM' in spreadsheet 'Sales Cohort Training Status Tracker'. Attempting to run the report as if the OBST were exactly 60 days ago.");
+            var trying60daysAgo = calculateDaysAgo_(60);
+            console.log("Onboarding start date was not found: " + obsd + ". Continuing. Attempting instead with " + trying60daysAgo);
+            displayCompanyHistoricTrainingOnSS_(cID, trying60daysAgo);
         }
     }
     catch (err) {
@@ -325,7 +329,7 @@ function beautifyHistoricalArray_(users) {
     }
 }
 function displayRunner() {
-    displayCompanyHistoricTrainingOnSS_("308479000", "2/3/2020");
+    displayCompanyHistoricTrainingOnSS_("308479000", new Date(2020, 1, 3));
 }
 /**
  * Get the date a given number of days again
@@ -351,7 +355,7 @@ function findOBSD(companyID, sheet) {
             }
         }
         console.log("Company Id " + companyID + " not found.");
-        return -1;
+        return "";
     }
     else
         throw new Error("The given sheet, " + sheet + ", couldn't be found");

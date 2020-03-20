@@ -19,20 +19,25 @@ function menuAction() {
   var cID = sheet.getRange(2,1).getValue()
 
   //If there isn't one, alert the user.
-  if (cID=="") SpreadsheetApp.getUi().alert("There's no company ID in cell A2. Please put one in and try again.")
+  if (cID=="") {
+    SpreadsheetApp.getUi().alert("There's no company ID in cell A2. Please put one in and try again.")
+    throw new Error("There's no company ID in cell A2. Please put one in and try again.");
+  }
 
   try {
-    console.log("trying to get cID")
-    var obsd = findOBSD(cID)
-      if (obsd) {
-        console.log(`onboarding start date found: ${obsd}. Continuing.`)
-        displayCompanyHistoricTrainingOnSS_(cID,obsd as string)
+    console.log(`Searching for OBSD for ${cID}.`)
+    var obsd = findOBSD(cID).toString();
+    console.log(`Tried finding OBST; results are: ${obsd}\n Length: ${obsd.length}`);
+      if (obsd.length>0) {
+        console.log(`Onboarding start date found: ${obsd}. Continuing.`)
+        displayCompanyHistoricTrainingOnSS_(cID,obsd)
 
       } else {
         //No onboarding start date could be found
-        SpreadsheetApp.getUi().alert(`Unable to find an onboarding start date for ${cID} in column N of sheet 'Training Status by AM' in spreadsheet 'Sales Cohort Training Status Tracker'. Attempting to run the report as if the OBST were exactly 60 days ago.`)
-        console.log(`Onboarding start date was not found: ${obsd}. Continuing.`)
-        displayCompanyHistoricTrainingOnSS_(cID,calculateDaysAgo_(60).toString())
+        console.log(`Unable to find an onboarding start date for ${cID} in column N of sheet 'Training Status by AM' in spreadsheet 'Sales Cohort Training Status Tracker'. Attempting to run the report as if the OBST were exactly 60 days ago.`)
+        var trying60daysAgo = calculateDaysAgo_(60);
+        console.log(`Onboarding start date was not found: ${obsd}. Continuing. Attempting instead with ${trying60daysAgo}`)
+        displayCompanyHistoricTrainingOnSS_(cID,trying60daysAgo);
         
       }
     } catch (err) {
@@ -196,7 +201,7 @@ console.log(myw00tarray)
 
 async function displayCompanyHistoricTrainingOnSS_(
   companyID: string, 
-  onboardingStartDate: string, 
+  onboardingStartDate: Date, 
   reportingThreshold:number = 60, 
   sheet= SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training")) {
 
@@ -221,7 +226,7 @@ async function displayCompanyHistoricTrainingOnSS_(
     var oldData = sheet.getDataRange().offset(4,0).clear({contentsOnly:true})
 
     console.log("Trying to set the OBSD onto the sheet.")
-    var topOBSD = sheet.getRange(2,2).setValue(onboardingStartDate)
+    var topOBSD = sheet.getRange(2,2).setValue(onboardingStartDate as Date)
 
     console.log("Trying to place the data onto the sheet.")
     var r = sheet.getRange(5,1,rows,columns).setValues(prettyArray)
@@ -333,7 +338,7 @@ function beautifyHistoricalArray_(users: User[] ){
   }
 
 function displayRunner() {
-  displayCompanyHistoricTrainingOnSS_("308479000","2/3/2020")
+  displayCompanyHistoricTrainingOnSS_("308479000",new Date(2020,1,3));
 }
 
 /**
@@ -356,11 +361,11 @@ function findOBSD(companyID: string, sheet = SpreadsheetApp.openById("1m23pHEfPT
           if (values[i][0]==companyID) {
               console.log(`found ${companyID} at values[${i}][0]`)
               rows=i+1
-              return sheet.getRange(rows,14).getValue() as string
+              return sheet.getRange(rows,14).getValue() 
           }
       }
       console.log(`Company Id ${companyID} not found.`)
-      return -1
+      return ""
       }  
   
   else throw new Error(`The given sheet, ${sheet}, couldn't be found`)
