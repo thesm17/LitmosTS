@@ -140,6 +140,23 @@ function checkCertificationStatus(userAchievements, certificationExamsIDs) {
         }
     };
 }
+/**
+ * Given any Litmos achievement, checks if it was a certifiction exam (defined here, internally). Returns 1 for MAE exam, 2 for Advanced exam, or 0 otherwise
+ * @param achievement Any Litmos achievement
+ * @returns 1 if the achievement is for the MAE exam,
+ * @returns 2 for the advanced exam
+ * @return 0 for every other achievement
+ */
+function checkAchievementType(achievement) {
+    //The certification exams are defined here, but these could be changed if the exams change
+    var UserCertificationCourseID = "PgqK7l17TdE1", AdvancedCertificationCourseID = "SC5guv5jtx01";
+    if (achievement.courseId == UserCertificationCourseID)
+        return 1;
+    if (achievement.courseId == AdvancedCertificationCourseID)
+        return 2;
+    else
+        return 0;
+}
 function getAllUserData(users) {
     var userData = users.map(function (user) {
         var results = getUserData(user);

@@ -6,35 +6,26 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
  * @return {TextOutput} A stringified version of the payload
  */
 function doPost(e) {
-    var payload = JSON.parse(e.postData.contents).data;
-    var keys = Object.keys(payload);
-    /** User for testing
-     *   var values = keys.map((key) => {return payload[key]});
-     *   var userID = payload.userId;
-     *   var paramsObject = getJsonFromParams(payload)
-     *
-     */
-    var results = "Incoming data: " + JSON.stringify(payload) + "\n";
-    results += runner(payload);
-    console.log(results);
-    // also for testing
     try {
-        var webHookTesterurl = "https://webhook.site/#!/53dc1d7f-2dc4-4f8c-a7b2-377fb6849011";
-        var options = {
-            'method': 'POST',
-            'contentType': 'application/json',
-            // Convert the JavaScript object to a JSON string.
-            //'payload' : `Keys: ${keys}\nValues: ${values}`
-            'payload': results
-        };
-        var webhookResponse = UrlFetchApp.fetch(webHookTesterurl, options);
-        console.log(webhookResponse);
+        var payload = JSON.parse(e.postData.contents).data;
+        var results = "Incoming data: " + JSON.stringify(payload) + "\n";
+        //Things to do:
+        // 1. Check if the achievement was for a certification and if it was, update the proper sheet
+        // 2. Display the achievements on the raw data sheet
+        // 3. Try posting back somewhere as a test
+        // 4. Return the result to the post-er
+        //Let's do this!
+        //1. Check for certification and post to proper ss
+        var wasThisCertification = checkAndPostCertificationCourses(payload);
+        results += "\nWas this for certification: " + wasThisCertification;
+        results += runner(payload);
+        console.log(results);
+        return ContentService.createTextOutput("Mission accomplished! Here is the total of what was posted: \n" + results);
     }
-    catch (e) {
-        console.log("There was some kind of error posting to the webhook testing site.");
+    catch (err) {
+        console.log("Oh no! there was an error from what was posted. Error: " + JSON.stringify(err));
+        return ContentService.createTextOutput("Oh no! there was an error from what was posted. Error: " + JSON.stringify(err.stack));
     }
-    //return results to poster
-    return ContentService.createTextOutput(results);
 }
 function doGet(e) {
     if (e.parameter.username) {
@@ -270,17 +261,6 @@ function getCompanyTrainingRecordFromSheet(companyID) {
         return null;
     }
 }
-var testCourseInfo = {
-    userId: "c100u234987e",
-    courseId: "63754",
-    otherstuff: "nooo",
-    yep: 17,
-    woo: 8
-};
-function claspTest() {
-    Logger.log("Test started");
-    runner(litmosTestCode);
-}
 function columnToLetter(column) {
     var temp, letter = '';
     while (column > 0) {
@@ -297,29 +277,123 @@ function letterToColumn(letter) {
     }
     return column;
 }
-var litmosTestCode = {
-    "id": 4513,
-    "created": "2019-05-06T01:13:19.533",
-    "type": "achievement.earned",
-    "object": "event",
-    "data": {
-        "userId": "yj-nr8PhW8o1",
-        "userName": "sample",
-        "courseId": "nAcqwEA8jUo1",
-        "title": "Course Demo",
-        "code": "",
-        "achievementDate": "2019-05-06T01:12:35.990",
-        "compliantTilldate": null,
-        "result": "Completed",
-        "type": "Course Completed",
-        "firstName": "Sample",
-        "lastName": "User",
-        "achievementId": 368800,
-        "certificateId": "biZrK8ab0LE1"
+function checkAndPostCertificationCourses(achievement) {
+    //1. Check if the achievement is on the achievement list
+    //2. If it is, add the new row to the proper sheet
+    //1 is MAE exam, 2 is Advanced Exam, 0 is anything else
+    var achievementType = checkAchievementType(achievement);
+    if (achievementType > 0) {
+        var postingStatus = postAchievementToSSv2(achievement, achievementType);
+        return postingStatus;
     }
-};
-/**
- * here is an example of me pushing some things
- */
-var paramsString = 'lastName=User&code&compliantTilldate&certificateId=biZrK8ab0LE1&achievementId=368800&userName=c3u30945835e&title=Course+Demo&type=Course+Completed&userId=c3u308757327e&result=Completed&firstName=Sample&achievementDate=2019-05-06T01%3A12%3A35.990&courseId=asdfljasdj%3Bl3245i734';
+    else
+        return "This achievement was not for certification.";
+}
+function postAchievementToSSv2(achievement, achievementType) {
+    var achievementSheetID, sheetName;
+    //Configure where to post the new row to.
+    switch (achievementType) {
+        case 1: {
+            achievementSheetID = "1F9nicQLbs1QB9uDE9wZPu7rDFQ-kB7rEG31wOKPB9j0",
+                sheetName = "Marketing Automation";
+            break;
+        }
+        case 2: {
+            achievementSheetID = "1F9nicQLbs1QB9uDE9wZPu7rDFQ-kB7rEG31wOKPB9j0",
+                sheetName = "Advanced Marketing Automation";
+            break;
+        }
+        default: throw new Error("That certification doesn't have a sheet to add new users to. " + achievement.courseId + " doesn't correspond to a certification exam.");
+    }
+    //Setup sheet to post to
+    var sheet = SpreadsheetApp.openById(achievementSheetID).getSheetByName(sheetName);
+    if (sheet) {
+        //try getting the user and achievements
+        try {
+            //The sheet needs 5 columns: Full name, Email, Results, Score, and date taken. 
+            //Email needs to be gotten separately 
+            //Score is actually not accessible via api, so I'm going to just fill in '>80%'
+            var user = getUser(achievement.userName);
+            var email = user.Email;
+            var poster = [achievement.firstName + " " + achievement.lastName, "" + email, "" + achievement.result, ">80%", "" + ("" + achievement.achievementDate.split("T")[0])];
+        }
+        catch (err) {
+            throw new Error(err);
+        }
+        //Try setting the new row of the sheet
+        console.log("Data prepped: " + poster + "\n Setting values into spreadsheed.");
+        try {
+            var r = sheet.getRange(sheet.getLastRow() + 1, 1, 1, poster.length).setValues([poster]);
+        }
+        catch (err) {
+            throw new Error("Unable to post to sheet: " + err);
+        }
+        return poster;
+    }
+    throw new Error("That sheet doesn't exist: " + sheet);
+}
+function postAchievementToSS(achievement, achievementType) {
+    var achievementSheetID, sheetName;
+    //Configure where to post the new row to.
+    switch (achievementType) {
+        case 1: {
+            achievementSheetID = "1F9nicQLbs1QB9uDE9wZPu7rDFQ-kB7rEG31wOKPB9j0",
+                sheetName = "Marketing Automation";
+            break;
+        }
+        case 2: {
+            achievementSheetID = "1F9nicQLbs1QB9uDE9wZPu7rDFQ-kB7rEG31wOKPB9j0",
+                sheetName = "Advanced Marketing Automation";
+            break;
+        }
+        default: throw new Error("That certification doesn't have a sheet to add new users to. " + achievement.courseId + " doesn't correspond to a certification exam.");
+    }
+    //Setup sheet to post to
+    var sheet = SpreadsheetApp.openById(achievementSheetID).getSheetByName(sheetName);
+    if (sheet) {
+        //try getting the user and achievements
+        try {
+            //The sheet needs 5 columns: Full name, Email, Results, Score, and taken on. 
+            //Email and score need to be gotten separately their different GETs
+            var user = getUser(achievement.userName);
+            var email = user.Email;
+            // The score isn't supplied on a webhook event. 
+            // Instead, getting the score involves getting all the achievements, locating this one, and then grabbing the score
+            var allAchvs = getUserAchievements(user.UserName);
+            var thisAch = allAchvs.filter(function (ach) { return ach.CourseId == achievement.courseId; });
+            console.log("Matching achievements completed: " + thisAch);
+            // If this has been completed multiple times, there could be multiple scores.
+            // So get the most recent occurance of this course completion for the score
+            var thisSpecificAch = thisAch[thisAch.length - 1];
+            var score = thisSpecificAch.Score;
+            var poster = [achievement.firstName + " " + achievement.lastName, "" + email, "" + achievement.result, ">80%", "" + achievement.achievementDate.split("T")[0]];
+        }
+        catch (err) {
+            throw new Error(err);
+        }
+        //Try setting the new row of the sheet
+        console.log("Data prepped: " + poster + "\n Setting values into spreadsheed.");
+        try {
+            var r = sheet.getRange(sheet.getLastRow() + 1, 1, 1, poster.length).setValues([poster]);
+        }
+        catch (err) {
+            throw new Error("Unable to post to sheet: " + err);
+        }
+        return poster;
+    }
+    throw new Error("That sheet doesn't exist: " + sheet);
+}
+function doExternalLog(logger) {
+    try {
+        var loggingUrl = "https://webhook.site/c2c68fc0-1163-464f-8fc7-11e2f79751cb";
+        UrlFetchApp.fetch(loggingUrl, {
+            "method": "post",
+            'contentType': 'application/json',
+            "payload": logger,
+        });
+    }
+    catch (err) {
+        throw new Error("Posting to the external site didn't work. sad: " + err);
+    }
+}
 //# sourceMappingURL=AchievementsToSpreadsheet.js.map

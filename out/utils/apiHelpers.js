@@ -16,14 +16,14 @@ var options = {
  * @return user object including LastLogin and CreatedDate
  */
 function getUser(username) {
-    var url = baseUrl + "/users/" + username + "?source=smittysapp&format=json";
+    var url = baseUrl + "users/" + username + "?source=smittysapp&format=json";
     try {
         var result = UrlFetchApp.fetch(url, options);
         var user = JSON.parse(result.getContentText());
         return user;
     }
     catch (err) {
-        throw new Error("There was an erro getting user " + username + " from Litmos.");
+        throw new Error("There was an error getting user " + username + " from Litmos.");
     }
 }
 /**
@@ -32,25 +32,45 @@ function getUser(username) {
  * @param since string that follows the YYYY-MM-DD pattern to serve as an end of getting achievements
  */
 function prepGetLitmosAchievements(user, since) {
-    var url;
-    if (since) {
-        url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json&since=" + since;
-    }
-    else {
-        url = "https://api.litmos.com/v1.svc/achievements?userid=" + user.UserName + "&source=smittysapp&format=json";
-    }
-    var prepped = {
-        responseType: "Achievement[]",
-        request: {
-            'method': 'GET',
-            'muteHttpExceptions': true,
-            'url': "" + url,
-            'headers': {
-                'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',
-            }
+    var userName;
+    try {
+        //Check if it's a user object or simply a username string
+        if (typeof user !== "string") {
+            console.log("Username was found in user.UserName.");
+            userName = user.UserName;
         }
-    };
-    return prepped;
+        else {
+            console.log("Username was given in the argument.");
+            userName = user;
+        }
+        var url;
+        if (since) {
+            url = "https://api.litmos.com/v1.svc/achievements?userid=" + userName + "&source=smittysapp&format=json&since=" + since;
+        }
+        else {
+            url = "https://api.litmos.com/v1.svc/achievements?userid=" + userName + "&source=smittysapp&format=json";
+        }
+        var prepped = {
+            responseType: "Achievement[]",
+            request: {
+                'method': 'GET',
+                'muteHttpExceptions': true,
+                'url': "" + url,
+                'headers': {
+                    'apikey': '4577fd81-69cd-4d49-bccb-03282a1a09f8',
+                }
+            }
+        };
+        return prepped;
+    }
+    catch (err) {
+        throw new Error(err);
+    }
+}
+function getUserAchievements(username) {
+    var preppedAch = prepGetLitmosAchievements(username);
+    var res = getAnyLitmos([preppedAch]);
+    return res[0];
 }
 /**
  * Gets achievements for a user with a Litmos username (eg cXXXXuXXXXe). The @param since accepts dates formed as YYYY-MM-DD to serve as an endpoint for searching for achievements
