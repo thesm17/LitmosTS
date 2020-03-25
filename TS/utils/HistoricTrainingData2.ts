@@ -5,6 +5,51 @@ function onOpen() {
       .addToUi()
 }
 
+
+function displayCompanyHistoricTrainingResultsOnOnRow_(row: number) {
+  //Prep the sheet
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Company Training By Day");
+  if (!sheet) {
+    console.log(`Oh no! The spreadsheet "Company Training By Day" couldn't be found`);
+    throw new Error(`Oh no! The spreadsheet "Company Training By Day" couldn't be found`)
+  };
+
+  console.log("Getting companyID and OBSD from spreadsheet.")
+  //Grab the companyID
+  var [cID, obsd]= sheet.getRange(row,1,1,2).getValues()[0]
+  
+
+  //If there isn't a companyID  in column 1, alert the user.
+  if (cID=="") {
+    console.log(`There isn't a company id in column 1 for row ${row}. Unable to continue.`) 
+    throw new Error(`There isn't a company id in column 1 for row ${row}. Unable to continue.`);
+  }
+
+  try {
+    if (obsd){
+      //Everything looks good; time to process training history.
+      console.log(`Attempting to process training history for ${cID} with an OBSD of ${obsd}`);
+    } 
+    else {
+      //No onboarding start date could be found
+      obsd = calculateDaysAgo_(60);
+      console.log(`Unable to find an onboarding start date for ${cID} in column B. Attempting to run the report as if the OBSD were exactly 60 days ago, with ${obsd}.`)
+    }
+    //Let's get to displayin'!
+    var dataToDisplay =  getCompanyHistoricTraining_(cID,obsd, true, sheet)[0];
+
+    //Fill all the empty cells so it doesn't do weird things
+    dataToDisplay = Array.from(dataToDisplay, item => item || " " );
+
+    var postingResults = postCompanyHistoricTrainingToSS_(dataToDisplay, sheet, row);   
+    return postingResults;    
+    } catch (err) {
+      console.log(`Oh no something went wrong!\n ${err}`)
+      throw new Error(`Oh no something went wrong!\n ${err}`);
+
+  }
+}
+
 function displayIndividualUserResults_() {
   var sheet = SpreadsheetApp.getActiveSheet()
 
@@ -25,8 +70,9 @@ function displayIndividualUserResults_() {
   }
 
   try {
+    var dataToPutOntoSheet;
     console.log(`Searching for OBSD for ${cID}.`)
-    var obsd = findOBSD(cID).toString();
+    var obsd = findOBSD_(cID).toString();
     console.log(`Tried finding OBST; results are: ${obsd}\n Length: ${obsd.length}`);
       if (obsd.length>0) {
         try {
@@ -34,16 +80,18 @@ function displayIndividualUserResults_() {
         } catch (err) {console.log(`Issue casting the osbd as a date: ${err}`)
       }
         console.log(`Onboarding start date found: ${obsd}.`)
-        displayCompanyHistoricTrainingOnSS_(cID,obsd as Date) 
+        dataToPutOntoSheet = getCompanyHistoricTraining_(cID,obsd as Date) 
 
       } else {
         //No onboarding start date could be found
         console.log(`Unable to find an onboarding start date for ${cID} in column N of sheet 'Training Status by AM' in spreadsheet 'Sales Cohort Training Status Tracker'. Attempting to run the report as if the OBST were exactly 60 days ago.`)
-        var trying60daysAgo = calculateDaysAgo_(60);
-        console.log(`Onboarding start date was not found: ${obsd}. Continuing. Attempting instead with ${trying60daysAgo}`)
-        displayCompanyHistoricTrainingOnSS_(cID,trying60daysAgo);
-        
+        obsd = calculateDaysAgo_(60);
+        console.log(`Onboarding start date was not found. Attempting instead with ${obsd}`)
+        dataToPutOntoSheet = getCompanyHistoricTraining_(cID,obsd);
       }
+    
+      var postResults = postAllUsersToSheet_(dataToPutOntoSheet, obsd.toString(), sheet);
+      return postResults;
     } catch (err) {
       SpreadsheetApp.getUi().alert(`Oh no something went wrong!\n ${err}`)
   }
@@ -58,7 +106,7 @@ function displayIndividualUserResults_() {
  * @param activationDate Can be pasted straight from a Google sheets date field
  * @param reportingDayLength How many days should be included in the report?
  */
-function getCompanyHistoricalAchievementArray_(companyID: string, activationDate: string| Date, reportingDayLength: number=60) {
+function getCompanyHistoricalAchievementArray_(companyID: string, onboardingStartDate: string| Date, reportingDayLength: number=60, getOneCompanyRow = false) {
   //Establish how far back to report, typically 60 days
   //Then format in YYYY-MM-DD for Litmos
   var reportingThreshold = formatDate(calculateDaysAgo_(reportingDayLength))
@@ -81,13 +129,14 @@ function getCompanyHistoricalAchievementArray_(companyID: string, activationDate
 
   //Correct achievement dates so they're relative to activation date
   console.log(`Adjusting dates so they are based on OBST.`)
-  var allUsersAchievements = adjustAchievementDatesByActivationDate_(allUserTrainingStatus_properDates, activationDate)
+  var allUsersAchievements = adjustAchievementDatesByOBSD_(allUserTrainingStatus_properDates, onboardingStartDate)
+
 
   //Build the whole historical array with the given adjusted achievements
   var historicArray = buildHistoricalAchievementArray_(allUsersAchievements, reportingDayLength)
 
   //Loop through the historicArray and add each users' historical array to the User
-  console.log(`adding the course history record to each user object.`)
+  console.log(`Adding the course history record to each user object.`)
   var userHistoricData: User[] = allUsersAchievements.map(function(user,userIndex){
     user.CourseHistory = historicArray[userIndex]
     return user
@@ -119,11 +168,12 @@ function getCompanyHistoricalAchievementArray_(companyID: string, activationDate
        * @param {User[]} allUserallUsersAchievements  comes from getAllUsersTrainingStatus()
        * @param {string|date} activationDate
        */
-      function adjustAchievementDatesByActivationDate_( allUserallUsersAchievements: User[], activationDate: string|Date) {
+      function adjustAchievementDatesByOBSD_( allUserallUsersAchievements: User[], activationDate: string|Date) {
         //map through each user
         allUserallUsersAchievements.forEach(function(user) {
           user.CoursesCompleted.forEach(function(achievement){
             achievement.DaysIntoOnboardingWhenCompleted = daysBetween_(achievement.AchievementDate,activationDate)
+            achievement.DaysAgoWhenCompleted = daysBetween_(achievement.AchievementDate);
           })
         })
         return allUserallUsersAchievements
@@ -138,7 +188,7 @@ function getCompanyHistoricalAchievementArray_(companyID: string, activationDate
            * @param t1 Time 1
            * @param t2 Time 2, or leave empty to compare it with now
            */
-          function daysBetween_(t1: string | Date,t2: string | Date | undefined) {
+          function daysBetween_(t1: string | Date,t2?: string | Date | undefined) {
             return daysSince(millsSince(t1,t2))
             }
         }
@@ -195,173 +245,165 @@ function getCompanyHistoricalAchievementArray_(companyID: string, activationDate
 
 }
 
-function runthismydude(){
-var myw00tarray = getCompanyHistoricalAchievementArray_("308477846","2020-02-01",90)
-console.log(myw00tarray)
+function postCompanyHistoricTrainingToSS_(dataToDisplay: string[], sheet: GoogleAppsScript.Spreadsheet.Sheet, row: number){
+  try {
+    //Let post on the sheet the row which is being updated currently
+    var postedRow = sheet.getRange(2,3).setValue(`Row ${row}`)
+
+    var postMe = sheet.getRange(row,4,1,dataToDisplay.length).setValues([dataToDisplay]);
+    return postMe
+  } catch (err) {throw new Error(err)}
 }
 
-
-
-
-async function displayCompanyHistoricTrainingOnSS_(
-  companyID: string, 
-  onboardingStartDate: Date, 
-  reportingThreshold:number = 60, 
-  sheet= SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training")) {
+function getCompanyHistoricTraining_(
+                                      companyID: string, 
+                                      onboardingStartDate: Date, 
+                                      outputSingleCompanyRow:boolean = false,
+                                      sheet= SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Historic Training"),
+                                      reportingThreshold:number = 180, ) {
 
     //Make sure the sheet exists
     if (!sheet) throw new Error ("No sheet given or sheet doesn't exist.")
 
     //Get all achievements for users from Litmos. 
-    console.log("Getting user achievements.")
-    var userHistories= await getCompanyHistoricalAchievementArray_(companyID, onboardingStartDate, reportingThreshold)
+    console.log("Getting user achievements:\n\t")
+    var userHistories=  getCompanyHistoricalAchievementArray_(companyID, onboardingStartDate, reportingThreshold)
+
+    //How many days ago was their most recent achievement?
+    var daysSinceLastAchievement: number | string = Math.min(...userHistories.map((user) => {
+      return Math.min(...user.CoursesCompleted.map((course) => {
+        return course.DaysAgoWhenCompleted;}))}));
+    if (!isFinite(daysSinceLastAchievement)) daysSinceLastAchievement = "N/A"
+
+    //Count the achievements for later
+    var totalNumberAchievements: number = 0;
+    var totalUserCertifications: number = 0;
+    userHistories.forEach(user => {
+      totalNumberAchievements += user.CoursesCompleted.length;
+      totalUserCertifications += checkCertificationStatus(user.CoursesCompleted).certificationComplete;
+    })
+    var totalUsersWithAchievements = stripOutUsersWithoutAchievements_(userHistories).length;
+
 
     //Insert beautification
     console.log("Beautifying array.")
-    var prettyArray = beautifyHistoricalArray_(userHistories)
 
-    //Calculate the range to place onto SpreadSheet
-    var rows = prettyArray.length
-    var columns = Math.max(...(prettyArray.map(day =>  day.length)))
-    console.log(`Calculated range for placing on ss: rows: ${rows}, columns: ${columns}.`)
+    var prettyArray = beautifyHistoricalArray_(userHistories, outputSingleCompanyRow)
+    
+    //Return the range array, return to be posted
+    if (outputSingleCompanyRow){
+      var companyTrainingStatus = getCompanyTrainingStatus2_(prettyArray[0], totalNumberAchievements, totalUserCertifications, daysSinceLastAchievement, userHistories.length);
 
-    //Clear the old data
-    console.log('Trying to clear old data off.')
-    var oldData = sheet.getDataRange().offset(4,0).clear({contentsOnly:true})
-    var obst_formatted: string; 
-    try{
-      obst_formatted = onboardingStartDate.toString().split(" ").slice(1,4).join(" ");
-      console.log(`Spliting the date: ${obst_formatted}`);
-    } catch (err) {console.log(`There was an issue formatting the date: ${err}`)}
-   
-    var returnDate = function(){if (obst_formatted) return obst_formatted; else return onboardingStartDate}
-    var topOBSD = sheet.getRange(2,2).setValue(returnDate())
-
-    console.log("Trying to place the data onto the sheet.")
-    var r = sheet.getRange(5,1,rows,columns).setValues(prettyArray)
-
+      var dataPlusHeaderColumns = prepSingleComppanyRowForPosting_(prettyArray, companyTrainingStatus, daysSinceLastAchievement, totalNumberAchievements,totalUsersWithAchievements ,totalUserCertifications);
+      return dataPlusHeaderColumns
+    } 
+    else return prettyArray;
 }
 
 
-/**
- * Prep the achievement data to look better on a spreadsheet. 
- * 1. Remove rows for users with no data to speed up searching
- * 2. If one of them was the achievement test, put a * instead
- * 3. Instead of slamming all the achievement data into one cell, display how many courses were completed that day
- * 4. Displays "xx others users with no achievements" at the bottom
- * @param users comes from getCompanyHistoricalAchievementArray_()
- */
-function beautifyHistoricalArray_(users: User[] ){
-
+function stripOutUsersWithoutAchievements_(users: User[]) {
   //1. Strip out users with no achievements
   console.log(`Stripping out users without achievements. Pre-strip total: ${users.length} Litmos accounts for this company`)
   var strippedOutNonAchievers = users.filter(user => user.CoursesCompleted.length > 0 )
   console.log(`After stripping, number of users with achievements: ${strippedOutNonAchievers.length}.`)
-  
+  return strippedOutNonAchievers;
+}
+
+function getParallelCertificationArray_(users: User[]) {
   //2. Check if any users completed the certification courses
   console.log(`Checking for certified users.`)
-  var certificationNoted = strippedOutNonAchievers.map(user => checkIfUserIsCertified_(user))
+  var certificationNoted = users.map(user => checkIfUserIsCertified_(user))
 
   //smash down empty user achievement arrays so that all they have are days someone got certified.
   var userCertified = certificationNoted.map(function (user){
     return user.filter( dailyAch => (dailyAch>-1)); 
   });
-  console.log(`Similar data from certificationNoted but smashed down: ${userCertified}`);
+  return userCertified
+}
+
+function transformAchievementsToNumber_(users: User[], certificationNoted: number[][]) {
+  //3. Loop through each day and instead of returning the specific achievements, return how many achievements there are
+  //If one of the achievements was a certification achievement, add a * to the number
+  console.log(`Transforming all achievements into numbers and certification achievements into *s`)
+  var numericalAchievementArray = transformDailyAchievementArrayIntoNumericalArray_(users, certificationNoted)
+  return numericalAchievementArray
+}
+/**
+ * 4. Takes a whole company's user's records and smashes them into one "user"[]
+ * @param numericalAchievementArray 
+ */
+function combineMultipleUsersIntoOneCompanyAchievementRow_ (users: User[]) {
+  //Given a list of users[], combine them into one big user
+  console.log(`Combining all users together. From ${users.length} down to 1.`)
+  if (users.length>0){
+    //Combine the users together with this reducing function
+    var combinedAchievements: Achievement[]=[];
+    var combinedDailyAchievements: [Achievement[]]=[[]]
+     users.forEach((user,userIndex)=> {
+      //Put all the achievements into the one CoursesCompleted key
+      user.CoursesCompleted.forEach((achievement,courseIndex)=>{
+        combinedAchievements.push(achievement);
+      });
+      //Put all the achievements into the proper day
+      user.CourseHistory.forEach((day, dayIndex) => {
+        if (combinedDailyAchievements[dayIndex]) {
+          combinedDailyAchievements[dayIndex].push(...day);
+        }
+        else combinedDailyAchievements[dayIndex] = day;
+      }) 
+    })
+    users[0].CoursesCompleted = combinedAchievements;
+    users[0].CourseHistory = combinedDailyAchievements;
+    return [users[0]];
+  }
+  else return users
+}
+
+/**
+ * Prep the achievement data to look better on a spreadsheet. 
+ * 1. Remove rows for users with no data to speed up searching
+ * 2. Check if any achievements were certifications
+ * 3. Transform the actual achievement data into numbers, with * for certificaiton days (eg. `4*`)
+ * 4. Displays "xx others users with no achievements" at the bottom
+ * @param users comes from getCompanyHistoricalAchievementArray_()
+ * @param outputSingleCompanyRow tells whether to output as one company row or as individual user rows.
+ */
+function beautifyHistoricalArray_(users: User[],outputSingleCompanyRow = false ){
+
+  //1. Strip out users with no achievements
+  var strippedOutNonAchievers = stripOutUsersWithoutAchievements_(users);
+  
+  //1b. OPTIONAL Smash all users into one array
+  if (outputSingleCompanyRow){
+    strippedOutNonAchievers = combineMultipleUsersIntoOneCompanyAchievementRow_(strippedOutNonAchievers);
+  } 
+
+  //2. Check if any users completed the certification courses
+    var parallelCertification = getParallelCertificationArray_(strippedOutNonAchievers);
   
   //3. Loop through each day and instead of returning the specific achievements, return how many achievements there are
   //If one of the achievements was a certification achievement, add a * to the number
-  console.log(`transforming achievements into numbers`)
-  var numericalAchievementArray = transformDailyAchievementArrayIntoNumericalArray_(strippedOutNonAchievers, certificationNoted)
+  var numericalAchievementArray = transformAchievementsToNumber_(strippedOutNonAchievers, parallelCertification);
 
-  //Loop through each user and add their name and if they earned at least one certification achievement into the first two cells
-  console.log(`adding names and stuff at the beginning of the achievement arrays`)
-  numericalAchievementArray.forEach(function(user, userIndex){
-     user.unshift(
-      `${strippedOutNonAchievers[userIndex].UserName}`,
-      `${strippedOutNonAchievers[userIndex].FirstName} ${strippedOutNonAchievers[userIndex].LastName}`,
-      `${(userCertified[userIndex].length>0)}`)
-  })
-  console.log(`Numerical array with names added. Example first row: ${numericalAchievementArray[0]}`)
-  //Attempting to show how many users have no achievements, but struggling with adding it to the same array. For simplicity, just do it in another function.
-  //!!!!!
-    // console.log(`adding a new row at the bottom to say how many users have no achievements`);
-    // numericalAchievementArray.push(Array.from(numericalAchievementArray[0][0], () => ("")));
 
-    // console.log(`adding the additional users without achievements`);
-    // numericalAchievementArray[numericalAchievementArray.length-1]=[`${users.length-strippedOutNonAchievers.length} additional users with no achievements.`]
-    
-    // console.log(`trying to make the size of the array match the other ones.`);
-    // numericalAchievementArray[numericalAchievementArray.length-1].length=numericalAchievementArray[0].length
-
-  console.log(`Beautifying complete!`)
-  return numericalAchievementArray
-
-  
-
-/**
- * 
- * * HELPER FUNCTIONS!!!!!!!
- * * HELPER FUNCTIONS!!!!!!!
- * * HELPER FUNCTIONS!!!!!!!
- * * HELPER FUNCTIONS!!!!!!!
- * * HELPER FUNCTIONS!!!!!!!
- */
-
-  /**
-   * Given a User, loops through each day in the CoursesCompleted[] to see if any match the certification courses, and returns the days where they earned a certification
-   * @param user 
-   * @param certificationCourseIDs optional array to specify additional certification courses other than the MAE. default will be ["PgqK7l17TdE1"]
-   * @returns the days a user got certified or an empty array if they have never been certified
-   */
-  function checkIfUserIsCertified_(user: User, certificationCourseIDs?: string[] | undefined) {
-    //Loop through each day in the user's course history and check if that course was achieved that day
-    var certificationDays: number[] = user.CourseHistory.map( function (daysCourses,dayIndex: number){
-      //Check if the user get certified on a given day
-      if (checkCertificationStatus(daysCourses, certificationCourseIDs).certificationPercent > 0 ){
-        return dayIndex
-      } else return -1
+  //If it's going to be a multi-row individual post, prep it.
+  if (!outputSingleCompanyRow){
+    //Loop through each user and add their name and if they earned at least one certification achievement into the first two cells
+    console.log(`adding names and stuff at the beginning of the achievement arrays`)
+    numericalAchievementArray.forEach(function(user, userIndex){
+       user.unshift(
+        `${strippedOutNonAchievers[userIndex].UserName}`,
+        `${strippedOutNonAchievers[userIndex].FirstName} ${strippedOutNonAchievers[userIndex].LastName}`,
+        `${(parallelCertification[userIndex].length>0)}`)
     })
-    
-    return (certificationDays)  
-    
-  }
-
-  /**
-   * Take an array of users with achievements and replace the achievement data with a number.
-   * Adds a * if the course was a certification course
-   * @param strippedOutNonAchievers 
-   * @param certificationNoted 
-   */
-  function transformDailyAchievementArrayIntoNumericalArray_( strippedOutNonAchievers: User[], certificationNoted: number[][]) {
-    var numericalAchievementArray = strippedOutNonAchievers.map(function (user, userIndex) {
-      var numberArray = user.CourseHistory.map(function (day, dayIndex) {
-        var count = day.length
-        if (certificationNoted[userIndex][dayIndex]>-1) {
-          return String(count) + "*"
-          } else return String(count)
-        })
-      return numberArray
-      })
-    return numericalAchievementArray
-    }
-  }
-
-function displayRunner() {
-  displayCompanyHistoricTrainingOnSS_("308479000",new Date(2020,1,3));
+    console.log(`Numerical array with names added. Example first row: ${numericalAchievementArray[0]}`)
+  }  
+  
+  console.log(`Beautifying complete!`)
+  return numericalAchievementArray;
 }
 
-/**
- * Get the date a given number of days again
- * @param since number of days ago
- * @returns the date so many days ago
- */
-function calculateDaysAgo_(since: number) {
-  var d= new Date()
-  d.setDate(d.getDate()-since)
-  return d
-}
-
-function findOBSD(companyID: string, sheet = SpreadsheetApp.openById("1m23pHEfPT5byJbKqlmMbIc6ZGDN9mRHHVL6ABWvdRW8").getSheetByName("Training Status by AM")) {
+function findOBSD_(companyID: string, sheet = SpreadsheetApp.openById("1m23pHEfPT5byJbKqlmMbIc6ZGDN9mRHHVL6ABWvdRW8").getSheetByName("Training Status by AM")) {
   if (sheet) {
       var r = sheet.getRange("A:A")
       console.log(`searching for ${companyID}.}`)
@@ -376,6 +418,112 @@ function findOBSD(companyID: string, sheet = SpreadsheetApp.openById("1m23pHEfPT
       console.log(`Company Id ${companyID} not found.`)
       return ""
       }  
-  
+
   else throw new Error(`The given sheet, ${sheet}, couldn't be found`)
+}
+
+  /**
+ * Get the date a given number of days again
+ * @param since number of days ago
+ * @returns the date so many days ago
+ */
+function calculateDaysAgo_(since: number) {
+  var d= new Date()
+  d.setDate(d.getDate()-since)
+  return d
+}
+
+/**
+ * Given a User, loops through each day in the CoursesCompleted[] to see if any match the certification courses, and returns the days where they earned a certification
+ * @param user 
+ * @param certificationCourseIDs optional array to specify additional certification courses other than the MAE. default will be ["PgqK7l17TdE1"]
+ * @returns the days a user got certified or an empty array if they have never been certified
+ */
+function checkIfUserIsCertified_(user: User, certificationCourseIDs?: string[] | undefined) {
+  //Loop through each day in the user's course history and check if that course was achieved that day
+  var certificationDays: number[] = user.CourseHistory.map( function (daysCourses,dayIndex: number){
+    //Check if the user get certified on a given day
+    if (checkCertificationStatus(daysCourses, certificationCourseIDs).certificationPercent > 0 ){
+      return dayIndex
+    } else return -1
+  })
+  
+  return (certificationDays)  
+  
+}
+
+/**
+ * Take an array of users with achievements and replace the achievement data with a number.
+ * Adds a * if the course was a certification course
+ * @param strippedOutNonAchievers 
+ * @param certificationNoted 
+ */
+function transformDailyAchievementArrayIntoNumericalArray_( strippedOutNonAchievers: User[], certificationNoted: number[][]) {
+  var numericalAchievementArray = strippedOutNonAchievers.map(function (user, userIndex) {
+    var numberArray = user.CourseHistory.map(function (day, dayIndex) {
+      var count = day.length
+    
+      //certificationNoted[userIndex] is something like [3, 18], signifying achievements were done on days 3 and 18
+      if (certificationNoted[userIndex].includes(dayIndex)){
+              return String(count) + "*"
+        } else return String(count)
+      })
+    return numberArray
+    })
+  return numericalAchievementArray
+  }
+
+
+function prepSingleComppanyRowForPosting_(
+  prettyArray: string[][],
+  companyTrainingStatus: string,
+  daysSinceLastAchievement: string|number,
+  totalNumberAchievements: number,
+  totalNumberUsers: number,
+  totalUserCertifications: number) {
+  var headers = [companyTrainingStatus, (new Date()).toString(),daysSinceLastAchievement.toString(),totalNumberAchievements.toString(), totalNumberUsers.toString(),totalUserCertifications.toString()];
+  if (prettyArray[0]){
+    prettyArray[0].unshift(...headers);
+    return prettyArray;
+  } else return [headers]
+}
+
+function postAllUsersToSheet_(prettyArray: any[], onboardingStartDate: string, sheet: GoogleAppsScript.Spreadsheet.Sheet){
+   //Calculate the range to place onto SpreadSheet
+   var rows = prettyArray.length
+   var columns = Math.max(...(prettyArray.map(day =>  day.length)))
+   console.log(`Calculated range for placing on ss: rows: ${rows}, columns: ${columns}.`)
+
+   //Clear the old data
+   console.log('Trying to clear old data off.')
+   var oldData = sheet.getDataRange().offset(4,0).clear({contentsOnly:true})
+   var obst_formatted: string; 
+   try{
+     obst_formatted = onboardingStartDate.toString().split(" ").slice(1,4).join(" ");
+     console.log(`Spliting the date: ${obst_formatted}`);
+   } catch (err) {console.log(`There was an issue formatting the date: ${err}`)}
+  try {
+    console.log(`Attempting to post on the ss`);
+    var returnDate = function(){if (obst_formatted) return obst_formatted; else return onboardingStartDate}
+   var topOBSD = sheet.getRange(2,2).setValue(returnDate())
+   
+   console.log("Trying to place the data onto the sheet.")
+   var r = sheet.getRange(5,1,rows,columns).setValues(prettyArray);
+   console.log("Mission accomplished!");
+   return true;
+  } catch (err) {throw new Error(err)}
+   
+}
+
+
+function displayRunner() {
+  displayCompanyHistoricTrainingResultsOnOnRow_(10);
+}
+
+function getCompanyTrainingStatus2_(dataToDisplay: string[], totalNumberAchievements: number,totalUserCertifications: number, daysSinceLastAchievment:string|number, totalNumUsers: number){
+  var status: string;
+  if (totalNumUsers == 0) {status = "No Users or Logins"; return status}
+  if (totalUserCertifications>0) {status = `${totalUserCertifications} certified user/users`; return status}
+  if (daysSinceLastAchievment<=7 && daysSinceLastAchievment>=0) {status = `In Progress`; return status}
+  else return "Stalled";
 }

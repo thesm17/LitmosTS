@@ -36,7 +36,6 @@ function prepGetLitmosAchievements(user, since) {
     try {
         //Check if it's a user object or simply a username string
         if (typeof user !== "string") {
-            console.log("Username was found in user.UserName.");
             userName = user.UserName;
         }
         else {

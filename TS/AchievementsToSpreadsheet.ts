@@ -23,8 +23,12 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 function doPost(e: GoogleAppsScript.Events.DoPost) {
   try {
     var payload = JSON.parse(e.postData.contents).data
- 
+    
+    //Post to webhooktester to see when this is happening.
+    var postResponse = doExternalLog(`Hello webhooktester! This is the string of what's arrived from litmos: ${JSON.stringify(payload)}`);
+
     var results: string = `Incoming data: ${JSON.stringify(payload)}\n`
+    results+=postResponse;
     
     //Things to do:
     // 1. Check if the achievement was for a certification and if it was, update the proper sheet
@@ -38,7 +42,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
     results += `\nWas this for certification: ${wasThisCertification}`;
     results += runner(payload);
     console.log(results);
-    return ContentService.createTextOutput(`Mission accomplished! Here is the total of what was posted: \n${results}`);
+    return ContentService.createTextOutput(`Mission accomplished!\n Here is the total of what was posted: \n${results}\n\n`);
   } catch (err) {
     console.log(`Oh no! there was an error from what was posted. Error: ${JSON.stringify(err)}`);
     return ContentService.createTextOutput(`Oh no! there was an error from what was posted. Error: ${JSON.stringify(err.stack )}`)
@@ -454,10 +458,15 @@ function postAchievementToSS(achievement: Achievement_Webhook, achievementType: 
 }
 
 function doExternalLog(logger: string) {
-  try{var loggingUrl = "https://webhook.site/c2c68fc0-1163-464f-8fc7-11e2f79751cb"
-  UrlFetchApp.fetch(loggingUrl, {
+  try{
+    var loggingUrl = "https://webhook.site/c2c68fc0-1163-464f-8fc7-11e2f79751cb";
+    UrlFetchApp.fetch(loggingUrl, {
     "method": "post",
     'contentType': 'application/json',
     "payload": logger,    
-  });} catch (err) {throw new Error(`Posting to the external site didn't work. sad: ${err}`);}  
+  })
+    return `Logged successfully.`;
+  } catch (err) {return(`Posting to the external site didn't work. sad: ${err}`);}  
 }
+
+// DriveApp.getFiles();

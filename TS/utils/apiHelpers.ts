@@ -20,7 +20,8 @@ interface User {
   CreatedDate?: string,
   [key:string]:any,
   CoursesCompleted: Achievement[],
-  CourseHistory: [Achievement[]]
+  CourseHistory: [Achievement[]],
+  Certified: boolean
 }
 
 interface Achievement {
@@ -32,6 +33,7 @@ interface Achievement {
   CompliantTillDate?: string|null,
   //How many days into Onboarding were they when they completed this?
   DaysIntoOnboardingWhenCompleted?: number,
+  DaysAgoWhenCompleted: number,
   Score:string,
   [key:string]:any
 }
@@ -77,7 +79,6 @@ function prepGetLitmosAchievements(user: any, since?:string) {
   try {
   //Check if it's a user object or simply a username string
   if (typeof user !== "string"){
-    console.log("Username was found in user.UserName.")
     userName = user.UserName
   } else {
     console.log("Username was given in the argument.")
@@ -154,7 +155,6 @@ function getAllUserLitmosAchievements_(users:User[], since?: string) {
   }
 
   function getAllCompanyUsers(companyID: string) {
-  
     var url = "https://api.litmos.com/v1.svc/users?source=smittysapp&format=json&search=c"+companyID+"u";
    
     try {

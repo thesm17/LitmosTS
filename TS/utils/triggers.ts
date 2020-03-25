@@ -1,32 +1,34 @@
 function runEveryNight() {
-  ScriptApp.newTrigger('updatePage1').timeBased().atHour(20).everyDays(1).create();
-  ScriptApp.newTrigger('updatePage2').timeBased().atHour(1).everyDays(1).create();
-  ScriptApp.newTrigger('updatePage3').timeBased().atHour(5).everyDays(1).create();
-  ScriptApp.newTrigger('updatePage4').timeBased().atHour(12).everyDays(1).create();
+  ScriptApp.newTrigger('updateTraining_By_Day_Sheet').timeBased().atHour(20).everyDays(1).create();
+}
+
+function updateTraining_By_Day_Sheet() {
+  refreshUserProps_2();
+  ScriptApp.newTrigger('updateTrainingStatus2').timeBased().everyMinutes(1).create();
 }
 
 //with a 1 minute delay between, run through all the rows in the first, then second, then third sheets
 function updatePage1() {
-  refreshUserProps();
+  refreshUserProps_();
   setPage(0);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
 function updatePage2() {
-  refreshUserProps();
+  refreshUserProps_();
   setPage(1);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
 function updatePage3() {
-  refreshUserProps();
+  refreshUserProps_();
   setPage(2);
   ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
 function updatePage4() {
   //reset loop counter to 0
-  refreshUserProps();
+  refreshUserProps_();
 
   //set the appropriate page for updating
   setPage(3);
@@ -37,12 +39,12 @@ function updatePage4() {
 
 //this is going to be slightly more tricky trying to figure out how to get the page into the trigger. come back to this one later
 function updateArbitraryPage() {
-  // refreshUserProps();
+  // refreshUserProps_();
   // setPage("somePage");
   // ScriptApp.newTrigger('updateTrainingStatusOnSheet').timeBased().everyMinutes(1).create();
 }
 
-function refreshUserProps() {
+function refreshUserProps_() {
   var userProperties = PropertiesService.getUserProperties();
   userProperties.setProperty('loopCounter', "0");
 }
@@ -51,6 +53,7 @@ function setPage(page: number) {
   var userProperties = PropertiesService.getUserProperties();
   userProperties.setProperty('page', `${page}`);
 }
+
 
 function updateTrainingStatusOnSheet() {
   var userProperties = PropertiesService.getUserProperties();
@@ -89,7 +92,7 @@ function updateTrainingStatusOnSheet() {
     Logger.log(JSON.stringify(trainingData));
 
         //format and display it on the sheet
-    var formattedRange = formatRange(trainingData);
+    var formattedRange = formatRange_(trainingData);
     var sheetUpdateStatus = updateSheetWithNewTrainingInfo(workingRow, formattedRange, sheet);
     Logger.log("Sheet successfully updated with the data: "+sheetUpdateStatus.getValues());
 
@@ -101,7 +104,7 @@ function updateTrainingStatusOnSheet() {
     Logger.log("Loop counter: "+loopCounter);
   } else {
     //There are no more rows to update, so delete the trigger
-    deletePageUpdateTrigger();
+    deletePageUpdateTrigger_();
   } 
   
 
@@ -149,7 +152,7 @@ function updateSheetWithNewTrainingInfo (row:number, rangeValues: any, sheet: an
   return formattedResults;
 }
 
-function formatRange(trainingStatus: any) {
+function formatRange_(trainingStatus: any) {
   /*need to set:
   *E-row to training status
   *F-row to the current time
@@ -172,7 +175,7 @@ function formatRange(trainingStatus: any) {
   return values
 }
 
-function deletePageUpdateTrigger() {
+function deletePageUpdateTrigger_() {
   // Loop over all triggers and delete the ones which are running the updateTrainingStatus function
   var allTriggers = ScriptApp.getProjectTriggers();
   var triggersToDelete = allTriggers.filter(function (trigger) {
@@ -188,7 +191,7 @@ function updateCustomRow() {
   //define the row and sheet to update based on sheets row #
   var row = 3;
   //var sheetNum = 0;
-  refreshUserProps();
+  refreshUserProps_();
   setPage(3);
   var userProperties = PropertiesService.getUserProperties();
   var loopCounter = Number(userProperties.getProperty('loopCounter'));
@@ -200,7 +203,7 @@ function updateCustomRow() {
   var companyID = sheet.getRange(row,1).getValue();
   var reportingThreshold = 7;
   var trainingData = getCompanyTrainingStatus(companyID, reportingThreshold);
-  var formattedRange = formatRange(trainingData);
+  var formattedRange = formatRange_(trainingData);
   var sheetUpdateStatus = updateSheetWithNewTrainingInfo(row, formattedRange, sheet);
   Logger.log("\nSheet successfully updated with the data: "+sheetUpdateStatus.getValues());
 }
@@ -210,4 +213,75 @@ function learnUserProperties() {
  var props =  userProperties.getProperties()
  var name = sheet.getSheetName();
   Logger.log("props gotten!");
+}
+
+function getCompanyTrainingArray_(companyLookupInfo: string[]) {
+  var [companyID,,daysSinceOBSD] = companyLookupInfo;
+  
+  //Get all achievements for users from Litmos. 
+  console.log("Getting user achievements.")
+  // ! Do I need to add an async/await here?
+  var userHistories= getCompanyHistoricalAchievementArray_(companyID, daysSinceOBSD, 60)
+
+  
+}
+
+
+/**
+ * This helper resets the looper to 0.
+ */
+function refreshUserProps_2() {
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('looper_companyTrainingByDay', "0");
+}
+
+/**
+ * This function is triggered to run every minute starting at 8 p.m.
+ */
+function updateTrainingStatus2() {
+  try {
+    //Figure out which row to update next
+    var userProperties = PropertiesService.getUserProperties();
+    var loopCounter = Number(userProperties.getProperty('looper_companyTrainingByDay'));
+
+    //Get the spreadsheet to update
+    //var ss = SpreadsheetApp.getS
+    var sheet = ss.getSheetByName("Company Training By Day");
+      
+      if (sheet){
+      
+
+      //Test to make sure the proper sheet is being edited
+      console.log(`Sheet to update: ${sheet.getSheetName()}`);
+      
+      //Set the number of header rows
+      var numHeaderRows = 4;
+      var totalRows = getLastRowInColumn_(sheet, 1,numHeaderRows);
+      console.log(`Currently calculating the sheet has ${totalRows}. \n'updateTrainingStatus2' will try and loop through all those, besides the headers. `)
+      
+      var limit = totalRows-numHeaderRows //subtract to deal with headers
+      Logger.log("This page has "+limit+" workable rows");
+      
+      //if there are still rows left:
+      if (loopCounter<limit) {
+        //Use the loop number to grab that row's company ID (column 1)
+        //Then run that through getting company info, and use that to display onto the sheet.
+        var workingRow = loopCounter + numHeaderRows + 1 //add an extra 1 because the array is 0-indexed, but the sheet's rows are 1-indexed
+        Logger.log("Working on row "+workingRow);
+        
+        //Do all the work!
+        displayCompanyHistoricTrainingResultsOnOnRow_(workingRow);
+
+        // increment the properties service counter for the loop
+        loopCounter +=1;
+        userProperties.setProperty('looper_companyTrainingByDay', `${loopCounter}`);
+        
+        // see what the counter value is at the end of the loop
+        Logger.log("Loop counter: "+loopCounter);
+      } else {
+        //There are no more rows to update, so delete the trigger
+        deletePageUpdateTrigger_();
+      } 
+    }
+  }  catch (err) {console.log(err); throw new Error(err);}  
 }

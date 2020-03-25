@@ -8,7 +8,10 @@ var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 function doPost(e) {
     try {
         var payload = JSON.parse(e.postData.contents).data;
+        //Post to webhooktester to see when this is happening.
+        var postResponse = doExternalLog("Hello webhooktester! This is the string of what's arrived from litmos: " + JSON.stringify(payload));
         var results = "Incoming data: " + JSON.stringify(payload) + "\n";
+        results += postResponse;
         //Things to do:
         // 1. Check if the achievement was for a certification and if it was, update the proper sheet
         // 2. Display the achievements on the raw data sheet
@@ -20,7 +23,7 @@ function doPost(e) {
         results += "\nWas this for certification: " + wasThisCertification;
         results += runner(payload);
         console.log(results);
-        return ContentService.createTextOutput("Mission accomplished! Here is the total of what was posted: \n" + results);
+        return ContentService.createTextOutput("Mission accomplished!\n Here is the total of what was posted: \n" + results + "\n\n");
     }
     catch (err) {
         console.log("Oh no! there was an error from what was posted. Error: " + JSON.stringify(err));
@@ -391,9 +394,11 @@ function doExternalLog(logger) {
             'contentType': 'application/json',
             "payload": logger,
         });
+        return "Logged successfully.";
     }
     catch (err) {
-        throw new Error("Posting to the external site didn't work. sad: " + err);
+        return ("Posting to the external site didn't work. sad: " + err);
     }
 }
+// DriveApp.getFiles();
 //# sourceMappingURL=AchievementsToSpreadsheet.js.map
