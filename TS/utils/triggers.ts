@@ -176,10 +176,12 @@ function formatRange_(trainingStatus: any) {
 }
 
 function deletePageUpdateTrigger_() {
+  console.log(`Deleting pageUpdateTrigger.`)
   // Loop over all triggers and delete the ones which are running the updateTrainingStatus function
   var allTriggers = ScriptApp.getProjectTriggers();
+  console.log(`All triggers: `+JSON.stringify(allTriggers))
   var triggersToDelete = allTriggers.filter(function (trigger) {
-    return (trigger.getHandlerFunction()=="updateTrainingStatusOnSheet")
+    return (trigger.getHandlerFunction()=="updateTrainingStatus2")
   });
 
   for (var i = 0; i < triggersToDelete.length; i++) {
@@ -257,11 +259,13 @@ function updateTrainingStatus2() {
       //Set the number of header rows
       var numHeaderRows = 4;
       var totalRows = getLastRowInColumn_(sheet, 1,numHeaderRows);
-      console.log(`Currently calculating the sheet has ${totalRows}. \n'updateTrainingStatus2' will try and loop through all those, besides the headers. `)
+      console.log(`Currently calculating the sheet has ${totalRows} rows. \n'updateTrainingStatus2' will try and loop through all those, besides the headers. `)
       
       var limit = totalRows-numHeaderRows //subtract to deal with headers
       Logger.log("This page has "+limit+" workable rows");
       
+      console.log(`The looper has made it up to loop number ${loopCounter}, and the limit is ${limit}.`)
+
       //if there are still rows left:
       if (loopCounter<limit) {
         //Use the loop number to grab that row's company ID (column 1)
@@ -279,6 +283,7 @@ function updateTrainingStatus2() {
         // see what the counter value is at the end of the loop
         Logger.log("Loop counter: "+loopCounter);
       } else {
+        console.log(`The looping limit has been reached, so attempting to delete the script trigger.`)
         //There are no more rows to update, so delete the trigger
         deletePageUpdateTrigger_();
       } 
