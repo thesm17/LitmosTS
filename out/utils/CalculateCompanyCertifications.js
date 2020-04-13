@@ -58,7 +58,7 @@ function getCourseCompletions_(users, courseIDs) {
             return {
                 Email: user.Email,
                 UserName: user.UserName,
-                numberOfTimesUserEarnedThisCertification: thisUserCompletions.numberOfCompletions,
+                numberOfTimesUserCompletedThisCourse: thisUserCompletions.numberOfCompletions,
                 completionDates: thisUserCompletions.completionDates
             };
         });
