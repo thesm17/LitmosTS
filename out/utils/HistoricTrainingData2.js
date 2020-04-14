@@ -481,6 +481,7 @@ function getCompanyUserAchievements(companyID, reportingThreshold) {
         user.CoursesCompleted = fixLitmosDates_(user.CoursesCompleted);
         return user;
     });
+    console.log("All company/user training status gotten.");
     return allUserTrainingStatus_properDates;
     // TODO Helper functions
     /**
