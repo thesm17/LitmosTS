@@ -38,6 +38,16 @@ interface Achievement {
   [key:string]:any
 }
 
+interface CourseCompletionResult {
+  courseID: string; 
+  numberOfCompanyUsersWithCompletions: number; 
+  userCourseCompletionData: 
+    { Email: string; 
+      UserName: string; 
+      numberOfTimesUserCompletedThisCourse: number; 
+      completionDates: string[];
+      }[];
+}
 
 /**
  * The following functions: (getUser, getLitmosAchievement, getAllCompanyUsers) are via the Litmos API

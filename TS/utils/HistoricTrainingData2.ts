@@ -112,20 +112,9 @@ function getCompanyHistoricalAchievementArray_(companyID: string, onboardingStar
   var reportingThreshold = formatDate(calculateDaysAgo_(reportingDayLength))
 
   //Search Litmos for all users with the corresponding companyID
-  
-  console.log(`Getting all company users.`)
-  var allCompanyUsers = getAllCompanyUsers(companyID)
-
   //Get the training status for each user
-  console.log(`Getting individual training records from Litmos.`)
-  var allUserTrainingStatus = getAllUserLitmosAchievements_(allCompanyUsers, reportingThreshold)
-
   //Correct achievement dates so they're out of Litmos form
-  console.log(`Fixing training dates`)
-  var allUserTrainingStatus_properDates = allUserTrainingStatus.map(function(user){
-    user.CoursesCompleted = fixLitmosDates_(user.CoursesCompleted)
-    return user
-  })
+  var allUserTrainingStatus_properDates = getCompanyUserAchievements(companyID, reportingThreshold);
 
   //Correct achievement dates so they're relative to activation date
   console.log(`Adjusting dates so they are based on OBST.`)
@@ -150,18 +139,7 @@ function getCompanyHistoricalAchievementArray_(companyID: string, onboardingStar
  */
        
 
-        /**
-       * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
-       * @param achievements the complete achievements array recieved from getLitmosAchievements()
-       * @returns the same set of achievements but with standardized dates
-       */
-      function fixLitmosDates_(achievements:Achievement[]){
-        let fixedAchievements = achievements.map(function (achievement){
-          achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate).toString()
-          return achievement
-        })
-        return fixedAchievements
-      }
+       
 
         /**
        * Pass in the whole company training record [] and ingest each user then each achievement therein to adjust the AchievementDate in terms of the activationDate
@@ -527,3 +505,45 @@ function getCompanyTrainingStatus2_(dataToDisplay: string[], totalNumberAchievem
   if (daysSinceLastAchievment<=7 && daysSinceLastAchievment>=0) {status = `In Progress`; return status}
   else return "Stalled";
 }
+
+/**
+ * This is the fundamental function that takes a SharpSpring company ID and returns the training history for each user.
+ * @param companyID SharpSpring company ID
+ * @param reportingThreshold? Optional limit for how many days back to show results from.
+ */
+
+function getCompanyUserAchievements (companyID: string, reportingThreshold?: string) {
+  //Search Litmos for all users with the corresponding companyID
+  
+  console.log(`Getting all company users.`)
+  var allCompanyUsers = getAllCompanyUsers(companyID);
+
+  //Get the training status for each user
+  console.log(`Getting individual training records from Litmos.`)
+  var allUserTrainingStatus = getAllUserLitmosAchievements_(allCompanyUsers, reportingThreshold)
+
+  //Correct achievement dates so they're out of Litmos form
+  console.log(`Fixing training dates`)
+  var allUserTrainingStatus_properDates = allUserTrainingStatus.map(function(user){
+    user.CoursesCompleted = fixLitmosDates_(user.CoursesCompleted)
+    return user
+  });
+  return allUserTrainingStatus_properDates;
+
+  // TODO Helper functions
+  /**
+   * This function consumes the complete user achievements[] and returns the array with each {} having converted dates
+   * @param achievements the complete achievements array recieved from getLitmosAchievements()
+   * @returns the same set of achievements but with standardized dates
+   */
+    function fixLitmosDates_(achievements:Achievement[]){
+      let fixedAchievements = achievements.map(function (achievement){
+        achievement.AchievementDate = convertLitmosDate(achievement.AchievementDate).toString()
+        return achievement
+      })
+      return fixedAchievements
+    }
+
+}
+
+ 

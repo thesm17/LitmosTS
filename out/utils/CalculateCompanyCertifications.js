@@ -23,9 +23,30 @@ function getCertificationCourseCompletionStatus_(users, englishOnly) {
     //Check either for english certification or for both english and spanish
     if (englishOnly)
         companyCourseCompletions = getCourseCompletions_(users, englishCertificationCourses);
-    else
-        companyCourseCompletions = getCourseCompletions_(users, allCertificationCourses);
+    else {
+        companyCourseCompletions = (getCourseCompletions_(users, allCertificationCourses));
+        //! debut this before putting it into production
+        //companyCourseCompletions = makeSpanishExamsEquivilent_(companyCourseCompletions);
+    }
     return companyCourseCompletions;
+}
+function makeSpanishExamsEquivilent_(certificationStats) {
+    // Check if there are values for the Spanish MAE and Spanish SWS. 
+    // If there are, pretend like they're also for the English MAE and English SWS     
+    var blankCourseCompletionResult = {
+        courseID: "",
+        numberOfCompanyUsersWithCompletions: 0,
+        userCourseCompletionData: [{
+                Email: "",
+                UserName: "",
+                numberOfTimesUserCompletedThisCourse: 0,
+                completionDates: []
+            }]
+    };
+    var englishMAE = certificationStats.find(function (course) { return course.courseID == "PgqK7l17TdE1"; }) || blankCourseCompletionResult;
+    var englishSWS = certificationStats.find(function (course) { return course.courseID == "0cbs--6jkgw1"; }) || blankCourseCompletionResult;
+    var spanishMAE = certificationStats.find(function (course) { return course.courseID == "8ErJpxT3KKc1"; }) || blankCourseCompletionResult;
+    var spanishSWS = certificationStats.find(function (course) { return course.courseID == "gNHu4th03ss1"; }) || blankCourseCompletionResult;
 }
 /**
  * Given users in a User[] and an array of courseIDs, return the users that have completed them
@@ -85,5 +106,15 @@ function getCourseCompletions_(users, courseIDs) {
             };
         }
     }
+}
+function getAgencyCertificationExamResults(companyID) {
+    //1. Get users for the company
+    var userAchievements = getCompanyUserAchievements(companyID);
+    //2. Get certification stats
+    var certificationStats = getCertificationCourseCompletionStatus_(userAchievements);
+}
+function certRunner() {
+    var results = getAgencyCertificationExamResults("308462255");
+    console.log(results);
 }
 //# sourceMappingURL=CalculateCompanyCertifications.js.map
